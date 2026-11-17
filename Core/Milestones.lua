@@ -107,13 +107,16 @@ function M.Skills()
   -- Try every API this client exposes; they do not all report Classic-data skill lines.
   if GetNumSkillLines and GetSkillLineInfo then
     M.LastSkillAPI = "GetSkillLineInfo"
+    local outer = ST.Probe; ST.Probe = (outer or "") .. ">GetSkillLineInfo"
     for i = 1, GetNumSkillLines() do
       local name, isHeader, _, rank, _, _, max = GetSkillLineInfo(i)
       if not isHeader then Add(name, rank, max) end
     end
+    ST.Probe = outer
   end
   if GetProfessions and GetProfessionInfo then
     if #out == 0 then M.LastSkillAPI = "GetProfessions" end
+    local outer = ST.Probe; ST.Probe = (outer or "") .. ">GetProfessions"
     local idx = { GetProfessions() }
     for _, i in pairs(idx) do
       if type(i) == "number" then
@@ -121,6 +124,7 @@ function M.Skills()
         Add(name, rank, max)
       end
     end
+    ST.Probe = outer
   end
   -- Last resort: skills we have only ever seen via the chat line.
   for name, rank in pairs(chatRank) do if not seen[name] then M.LastSkillAPI = M.LastSkillAPI .. "+chat"; Add(name, rank, nil) end end
@@ -303,7 +307,11 @@ function M.Init()
       if ST.Live then ST.Live.QueueRefresh() end
     elseif event == "PLAYER_ENTERING_WORLD" then
       C_Timer.After(3, function()
-        M.ScanQuestLog(); M.CheckSkills(); M.CheckRiding(); OnZone()
+        ST.Probe = "ScanQuestLog"; M.ScanQuestLog()
+        ST.Probe = "CheckSkills";  M.CheckSkills()
+        ST.Probe = "CheckRiding";  M.CheckRiding()
+        ST.Probe = "OnZone";       OnZone()
+        ST.Probe = nil
         if ST.Live then ST.Live.QueueRefresh() end
       end)
     end
