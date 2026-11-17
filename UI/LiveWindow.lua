@@ -12,18 +12,7 @@ local L = ST.Live
 -- Data seam (mock for now)
 ------------------------------------------------------------------------
 local function GetView()
-  local M = ST.Mock
-  return {
-    CompareKey = M.CompareKey,
-    Level = M.CharacterLevel,
-    Done = M.Done,
-    Upcoming = M.Upcoming,
-    Final = M.Final,
-    ActiveSeconds = M.ActiveSeconds,
-    PlayedSeconds = M.PlayedSeconds,
-    Running = M.ActiveRunning,
-    PreviousSegmentDelta = M.PreviousSegmentDelta,
-  }
+  return ST.View.Build()
 end
 
 local function Cfg() return ST.db.Config end
@@ -77,7 +66,7 @@ local function LayoutRow(row, timesLeft)
 end
 
 local function SetRowIcon(row, axis)
-  local tex = ST.Mock.AxisIcon[axis]
+  local tex = ST.Data.AxisIcon[axis]
   if tex then
     row.icon:SetTexture(tex)
     row.icon:Show()
@@ -259,6 +248,7 @@ end
 function L.Refresh()
   if not frame then return end
   local V = GetView()
+  lastDone = V.Done
   local cfg = Cfg()
   local timesLeft = cfg.TimesSide == "LEFT"
   frame:SetScale(cfg.Scale or 1)
@@ -331,20 +321,27 @@ function L.Refresh()
 end
 
 function L.UpdateTimer(V)
-  V = V or GetView()
+  if not frame then return end
   local cfg = Cfg()
+  local played, active = ST.Clock.Now()
   local primary, secondaryLabel, secondary
   if cfg.Clock == "PLAYED" then
-    primary, secondaryLabel, secondary = V.PlayedSeconds, "active", V.ActiveSeconds
+    primary, secondaryLabel, secondary = played, "active", active
   else
-    primary, secondaryLabel, secondary = V.ActiveSeconds, "played", V.PlayedSeconds
+    primary, secondaryLabel, secondary = active, "played", played
   end
   frame.timer.big:SetText(U.FormatTime(primary, true))
-  frame.timer.secondary:SetText(secondaryLabel .. " " .. U.FormatTime(secondary))
+  local reason = ST.Clock.ForcedStop()
+  local suffix = ""
+  if reason then suffix = "  |cffaaaaaa(" .. reason .. ")|r"
+  elseif not ST.Clock.IsRunning() then suffix = "  |cffaaaaaa(idle)|r" end
+  frame.timer.secondary:SetText(secondaryLabel .. " " .. U.FormatTime(secondary) .. suffix)
   local colour
-  if not V.Running then colour = T.Colour.Stopped
+  if ST.Record.Current().CharacterRun_Frozen then colour = T.Colour.Frozen
+  elseif not ST.Clock.IsRunning() then colour = T.Colour.Stopped
   else
-    local last = V.Done[#V.Done]
+    local done = (V and V.Done) or lastDone or {}
+    local last = done[#done]
     colour = last and T.DeltaColour(last.Best and (last.Time - last.Best), last.Gold) or T.Colour.Text
   end
   T.SetColour(frame.timer.big, colour)
@@ -352,11 +349,6 @@ end
 
 local acc = 0
 function L.OnUpdate(elapsed)
-  -- mock: advance the active clock
-  if ST.Mock.ActiveRunning then
-    ST.Mock.ActiveSeconds = ST.Mock.ActiveSeconds + elapsed
-    ST.Mock.PlayedSeconds = ST.Mock.PlayedSeconds + elapsed
-  end
   acc = acc + elapsed
   if acc >= 0.1 then acc = 0; L.UpdateTimer() end
 end
@@ -366,19 +358,21 @@ end
 ------------------------------------------------------------------------
 function L.ShowClassMenu(anchor)
   local items = {}
-  for _, c in ipairs(ST.Mock.ClassOptions) do
-    items[#items + 1] = { text = c, checked = (ST.Mock.CompareKey.Class == c), func = function() ST.Mock.CompareKey.Class = c; L.Refresh() end }
+  local current = ST.Compare.Key().Class
+  for _, c in ipairs(ST.Compare.ClassOptions()) do
+    items[#items + 1] = { text = ST.Compare.ClassLabel(c), checked = (current == c), func = function() Cfg().CompareClass = c; ST.Compare.Invalidate(); L.Refresh() end }
   end
   T.ShowMenu(anchor, items)
 end
 
 function L.ShowPatternMenu(anchor)
   local items = {}
-  for _, p in ipairs(ST.Mock.PatternOptions) do
-    items[#items + 1] = { text = p, checked = (ST.Mock.CompareKey.Pattern == p), func = function() ST.Mock.CompareKey.Pattern = p; L.Refresh() end }
+  local current = ST.Compare.Key().Pattern
+  for _, p in ipairs(ST.Compare.PatternOptions()) do
+    items[#items + 1] = { text = p, checked = (current == p), func = function() Cfg().ComparePattern = p; ST.Compare.Invalidate(); L.Refresh() end }
   end
   items[#items + 1] = { separator = true }
-  items[#items + 1] = { text = "New pattern...", func = function() U.Print("TODO: name this run") end }
+  items[#items + 1] = { text = "Name this run's pattern...", func = function() StaticPopup_Show("SPLITTIMER_NAME_PATTERN") end }
   T.ShowMenu(anchor, items)
 end
 
@@ -388,8 +382,8 @@ function L.ShowContextMenu(anchor)
     { title = "SplitTimer" },
     { text = "Lock window", checked = cfg.Locked, func = function() L.SetLocked(not cfg.Locked) end },
     { text = "Times on left", checked = cfg.TimesSide == "LEFT", func = function() cfg.TimesSide = cfg.TimesSide == "LEFT" and "RIGHT" or "LEFT"; L.Refresh() end },
-    { text = "Show Played clock", checked = cfg.Clock == "PLAYED", func = function() cfg.Clock = cfg.Clock == "PLAYED" and "ACTIVE" or "PLAYED"; L.Refresh() end },
-    { text = (ST.Mock.ActiveRunning and "Pause" or "Resume") .. " (mock)", func = function() ST.Mock.ActiveRunning = not ST.Mock.ActiveRunning; L.UpdateTimer() end },
+    { text = "Show Played clock", checked = cfg.Clock == "PLAYED", func = function() cfg.Clock = cfg.Clock == "PLAYED" and "ACTIVE" or "PLAYED"; ST.Compare.Invalidate(); L.Refresh() end },
+    { text = ST.Clock.IsPaused() and "Resume active clock" or "Pause active clock", func = function() ST.Clock.SetPaused(not ST.Clock.IsPaused()) end },
     { separator = true },
     { text = "History", func = function() ST.History.Toggle() end },
     { text = "Settings", func = function() ST.Config.Open() end },

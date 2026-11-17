@@ -70,6 +70,18 @@ local function Slash(msg)
   elseif cmd == "config" or cmd == "settings" or cmd == "options" then ST.Config.Open()
   elseif cmd == "lock" then ST.db.Config.Locked = not ST.db.Config.Locked; U.Print("window %s", ST.db.Config.Locked and "locked" or "unlocked")
   elseif cmd == "reset" then ST.db.Config.Position = nil; ST.Live.Create(); ST.Live.RestorePosition(); U.Print("position reset")
+  elseif cmd == "pause" then ST.Clock.SetPaused(true)
+  elseif cmd == "resume" then ST.Clock.SetPaused(false)
+  elseif cmd == "clock" then
+    if rest == "played" or rest == "active" then ST.db.Config.Clock = rest:upper(); ST.Compare.Invalidate(); ST.Live.Refresh() end
+    U.Print("clock: %s", ST.db.Config.Clock)
+  elseif cmd == "hit" then
+    if rest == "" then U.Print("usage: /split hit <name>") else
+      local slug = rest:gsub("%s+", "_")
+      ST.Record.Hit("manual:" .. slug, rest)
+    end
+  elseif cmd == "pattern" then StaticPopup_Show("SPLITTIMER_NAME_PATTERN")
+  elseif cmd == "played" then ST.Clock.RequestPlayed()
   elseif cmd == "icon" then
     -- dev helper: try an icon name on the minimap button, e.g. /split icon INV_Misc_Orb_05
     local Icon = LibStub and LibStub("LibDBIcon-1.0", true)
@@ -95,7 +107,24 @@ f:SetScript("OnEvent", function(_, event, arg1)
     SlashCmdList.SPLITTIMER = Slash
     ST.Config.Create()
     SetupMinimap()
+    StaticPopupDialogs["SPLITTIMER_NAME_PATTERN"] = {
+      text = "Name this run's route pattern (blank = default):",
+      button1 = OKAY, button2 = CANCEL,
+      hasEditBox = true, maxLetters = 40,
+      OnShow = function(self) self.editBox:SetText(ST.Record.Current().CharacterRun_Pattern or "") end,
+      OnAccept = function(self)
+        local name = self.editBox:GetText():match("^%s*(.-)%s*$")
+        ST.Record.Current().CharacterRun_Pattern = (name ~= "" and name ~= "default") and name or nil
+        ST.Compare.Invalidate(); ST.Live.Refresh()
+      end,
+      EditBoxOnEnterPressed = function(self) local p = self:GetParent(); p.button1:Click() end,
+      EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+      timeout = 0, whileDead = true, hideOnEscape = true,
+    }
   elseif event == "PLAYER_LOGIN" then
+    ST.Record.Current()
+    ST.Clock.Init()
+    ST.Milestones.Init()
     ST.Live.Create()
     ST.Live.Toggle(ST.db.Config.Shown ~= false)
   end
