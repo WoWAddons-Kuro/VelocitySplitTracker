@@ -91,8 +91,8 @@ function H.CreateIn(host)
   ----------------------------------------------------------------------
   local list = CreateFrame("Frame", nil, frame)
   list:SetPoint("TOPLEFT", 12, -26)
-  list:SetPoint("BOTTOMLEFT", 12, 12)
-  list:SetWidth(LIST_WIDTH)
+  list:SetPoint("TOPRIGHT", -12, -26)
+  list:SetHeight(T.RowHeight * 7 + 4)   -- header + ~6 visible runs; scrolls beyond that
   frame.list = list
 
   list.header = CreateFrame("Frame", nil, list)
@@ -116,10 +116,10 @@ function H.CreateIn(host)
   list.rows = {}
 
   ----------------------------------------------------------------------
-  -- Detail (right)
+  -- Detail (bottom panel, full width)
   ----------------------------------------------------------------------
   local detail = CreateFrame("Frame", nil, frame)
-  detail:SetPoint("TOPLEFT", list, "TOPRIGHT", 12, 0)
+  detail:SetPoint("TOPLEFT", list, "BOTTOMLEFT", 0, -10)
   detail:SetPoint("BOTTOMRIGHT", -12, 12)
   detail.bg = T.Texture(detail, T.Colour.RowAlt); detail.bg:SetAllPoints()
   frame.detail = detail
@@ -146,7 +146,7 @@ function H.CreateIn(host)
   detail.tableHeader = CreateFrame("Frame", nil, detail)
   detail.tableHeader:SetPoint("TOPLEFT", detail.sub, "BOTTOMLEFT", 0, -8); detail.tableHeader:SetPoint("RIGHT", -8, 0)
   detail.tableHeader:SetHeight(T.RowHeight)
-  detail.cols = { { "Milestone", 150, "LEFT" }, { "Active", 64, "RIGHT" }, { "Played", 64, "RIGHT" }, { "Segment", 56, "RIGHT" } }
+  detail.cols = { { "Milestone", 300, "LEFT" }, { "Active", 72, "RIGHT" }, { "Played", 72, "RIGHT" }, { "Segment", 64, "RIGHT" }, { "Where", 180, "LEFT" } }
   local hx = 0
   for _, c in ipairs(detail.cols) do
     local fs = T.Text(detail.tableHeader, T.FontSize - 1)
@@ -158,7 +158,7 @@ function H.CreateIn(host)
   detail.scroll:SetPoint("TOPLEFT", detail.tableHeader, "BOTTOMLEFT", 0, -2)
   detail.scroll:SetPoint("BOTTOMRIGHT", -30, 38)
   detail.content = CreateFrame("Frame", nil, detail.scroll)
-  detail.content:SetSize(340, 10)
+  detail.content:SetSize(700, 10)
   detail.scroll:SetScrollChild(detail.content)
   detail.rows = {}
 
@@ -240,6 +240,7 @@ function H.Refresh()
     row:Show()
   end
   frame.list.content:SetHeight(math.max(10, #runs * T.RowHeight))
+  T.AutoHideScrollBar(frame.list.scroll)
   if not selectedKey or not ST.db.Characters[selectedKey] then selectedKey = me end
   H.ShowDetail(selectedKey)
 end
@@ -271,7 +272,7 @@ local function MilestoneRows(rec)
   for key, m in pairs(rec.Milestones) do
     local axis = D.ParseKey(key)
     if axis ~= "questaccept" and axis ~= "zone" then
-      list[#list + 1] = { Key = key, Axis = axis, Label = m.Label or key, Active = m.Active, Played = m.Played, Inferred = m.Inferred, Sort = m.Inferred and -1 or (m[field] or 0) }
+      list[#list + 1] = { Key = key, Axis = axis, Label = m.Label or key, Active = m.Active, Played = m.Played, Inferred = m.Inferred, Where = m.Where, Sort = m.Inferred and -1 or (m[field] or 0) }
     end
   end
   table.sort(list, function(a, b)
@@ -309,9 +310,12 @@ function H.ShowDetail(key)
     c[2]:SetText(dim and "-" or U.FormatTime(it.Active)); T.SetColour(c[2], dim and T.Colour.TextDim or T.Colour.Text)
     c[3]:SetText(dim and "-" or U.FormatTime(it.Played)); T.SetColour(c[3], dim and T.Colour.TextDim or T.Colour.Text)
     c[4]:SetText(it.Segment and U.FormatTime(it.Segment) or ""); T.SetColour(c[4], T.Colour.TextDim)
+    local w = it.Where
+    c[5]:SetText(w and (w.Zone or "") .. (w.X and string.format("  %.1f, %.1f", w.X * 100, w.Y * 100) or "") or ""); T.SetColour(c[5], T.Colour.TextDim)
     row:Show()
   end
   d.content:SetHeight(math.max(10, #rows * T.RowHeight))
+  T.AutoHideScrollBar(d.scroll)
   d.btnClear:SetEnabled(rec.CharacterRun_Pattern ~= nil)
 end
 

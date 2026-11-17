@@ -69,6 +69,17 @@ function T.Separator(parent)
   return tx
 end
 
+-- UIPanelScrollFrameTemplate always draws its scrollbar; hide it when the content fits.
+-- Call after the scroll child's height is set.
+function T.AutoHideScrollBar(scrollFrame)
+  local bar = scrollFrame.ScrollBar or (scrollFrame:GetName() and _G[scrollFrame:GetName() .. "ScrollBar"])
+  if not bar then return end
+  local child = scrollFrame:GetScrollChild()
+  local fits = child and (child:GetHeight() <= scrollFrame:GetHeight() + 1)
+  bar:SetShown(not fits)
+  if fits then scrollFrame:SetVerticalScroll(0) end
+end
+
 -- Click-to-open dropdown. Uses the modern MenuUtil when present, else UIDropDownMenu.
 -- items: { { text=, checked=bool, func=function } ... }
 function T.ShowMenu(anchor, items)

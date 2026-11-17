@@ -132,6 +132,7 @@ local function NewGridPanel(parent, spec)
       b:Show()
     end
     picker.content:SetHeight(math.max(10, #items * T.RowHeight))
+    T.AutoHideScrollBar(picker.scroll)
 
     -- grid
     for _, r in ipairs(grid.rows) do r:Hide() end
@@ -173,6 +174,7 @@ local function NewGridPanel(parent, spec)
       row:Show()
     end
     grid.content:SetHeight(math.max(10, #g.Rows * T.RowHeight))
+    T.AutoHideScrollBar(grid.scroll)
   end
 
   return panel
