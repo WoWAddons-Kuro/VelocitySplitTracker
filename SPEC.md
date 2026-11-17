@@ -201,7 +201,7 @@ The title dropdowns are **filters that narrow the list of runs offered** as a re
 - `Run`: `delta = mine(M) − ref(M)`; blank when the reference never reached `M`. **Green** = ahead of the reference; **red** = behind; **gold** = ahead of the reference *and* faster than every candidate (a true record for that split).
 - `BestSplits`: `delta = mine(M) − min over candidates(M)`; gold = new best.
 - `None`: no deltas, no colours, best column blank.
-- `Previous Segment` (level n−1 → n) follows the mode: the reference's segment, or the best segment across candidates.
+- **Segment delta** on level done-rows, `(+2:14)` left of the cumulative delta: our `t(n) − t(n−1)` minus the comparison segment, which follows the mode (the reference's segment, or the best segment across candidates). Blank when either end of our segment is inferred. Replaced the LiveSplit "Previous Segment" footer (2026-11-17): it sat far from the row it described and its label meant nothing.
 - Level segment = `t(level:n) − t(level:n−1)` as before.
 
 ### 5.5 Rows derived from the comparison
@@ -282,7 +282,7 @@ No border, dark translucent background (`Config.Bg_Alpha`), alternating row shad
 │──────────────────────────────────────────│
 │                       1:12:56.4          │  ← big timer: Active (selected clock), colour per 6.3
 │                       played 1:40:12     │  ← secondary clock, small
-│ Previous Segment              -0:31     │
+│              ☠ 2                 v2026… │  ← footer: centred status (softcore: deaths; hardcore: "Hardcore"), build at right
 └──────────────────────────────────────────┘
 ```
 
