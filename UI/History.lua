@@ -189,9 +189,19 @@ function H.CreateIn(host)
     text = "Route pattern name for %s (blank = default):",
     button1 = OKAY, button2 = CANCEL,
     hasEditBox = true, maxLetters = 40,
-    OnShow = function(self, key) local rec = ST.db.Characters[key]; self.editBox:SetText(rec and rec.CharacterRun_Pattern or "") end,
-    OnAccept = function(self, key) H.SetPattern(key, self.editBox:GetText()) end,
-    EditBoxOnEnterPressed = function(self) self:GetParent().button1:Click() end,
+    -- The run key travels as popup.data; read it from self (the parameter is nil here).
+    OnShow = function(self)
+      local rec = self.data and ST.db.Characters[self.data]
+      self.editBox:SetText(rec and rec.CharacterRun_Pattern or ""); self.editBox:HighlightText()
+    end,
+    OnAccept = function(self)
+      if self.data then H.SetPattern(self.data, self.editBox:GetText()) end
+    end,
+    EditBoxOnEnterPressed = function(self)
+      local popup = self:GetParent()
+      if popup.data then H.SetPattern(popup.data, self:GetText()) end
+      popup:Hide()
+    end,
     EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
     timeout = 0, whileDead = true, hideOnEscape = true,
   }
@@ -347,8 +357,13 @@ end
 -- Actions
 ------------------------------------------------------------------------
 function H.NamePattern(key)
-  local popup = StaticPopup_Show("VELOCITY_NAME_RUN", ST.db.Characters[key].CharacterRun_Name or key, nil, key)
-  if popup then popup.data = key end
+  local rec = ST.db.Characters[key]; if not rec then return end
+  local popup = StaticPopup_Show("VELOCITY_NAME_RUN", rec.CharacterRun_Name or key, nil, key)
+  if popup then
+    popup.data = key
+    -- OnShow fires before .data is assigned on this client; prefill here as well.
+    popup.editBox:SetText(rec.CharacterRun_Pattern or ""); popup.editBox:HighlightText(); popup.editBox:SetFocus()
+  end
 end
 
 function H.SetPattern(key, name)
