@@ -107,6 +107,8 @@ The live window's title shows this as `{Start Zone} - {Class|Any} - {default|Pat
 - **Per-milestone best** (LiveSplit "best segments" spirit, adapted to benchmarks): for each `Milestone_Key`, the minimum `Active` (or Played, per selected clock) across candidate runs *that reached it*. Runs do not have to be complete.
 - **PB run** (LiveSplit "personal best"): the candidate run with the lowest time at the **highest common level milestone**, i.e. the run that was fastest to the furthest level. Shown in History with a ★.
 - Comparison mode option: `BestPerMilestone` (default) or `PBRun`.
+- **Reference runs** (`Core/Reference.lua`): imported split tables (a VOD, someone's export) stored as ordinary records flagged `CharacterRun_Reference = true`, key `ref:<slug>`, one time for both clocks. They take part in comparison, History (`(ref)`) and the pivots like any run; never counted as the player's PB. `/split import` opens the paste box.
+- **Cross-zone comparison** (`Config.CompareAnyZone`, menu toggle / `/split anyzone`): candidates from any start zone, for comparing e.g. a human paladin reference against a dwarf run. Mode filter (`Compare_AnyMode`) still applies; references with unknown mode pass it.
 
 ### 5.3 Deltas
 - Reaching milestone M: `delta = mine - best(M)`. Green `-0:42` ahead, red `+1:10` behind, gold if it is a new best across all candidates. White/none if no comparison data.
