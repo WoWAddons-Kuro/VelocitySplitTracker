@@ -203,7 +203,7 @@ f:SetScript("OnEvent", function(_, event, arg1, arg2)
         OnShow = function(self) self.editBox:SetText(ST.Record.Current().CharacterRun_Pattern or "") end,
         OnAccept = function(self)
           local name = self.editBox:GetText():match("^%s*(.-)%s*$")
-          ST.Record.Current().CharacterRun_Pattern = (name ~= "" and name ~= "default") and name or nil
+          ST.Record.Current().CharacterRun_Pattern = (name ~= "" and name ~= "personal" and name ~= "default") and name or nil
           ST.Compare.Invalidate(); ST.Live.Refresh()
         end,
         EditBoxOnEnterPressed = function(self) local p = self:GetParent(); p.button1:Click() end,

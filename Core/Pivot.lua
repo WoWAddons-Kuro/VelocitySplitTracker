@@ -22,7 +22,7 @@ function P.Facts(clockField)
             CharName = rec.CharacterRun_Name or charKey,
             Zone = rec.CharacterRun_StartZone or "Unknown",
             Class = rec.CharacterRun_ClassFile or "?",
-            Pattern = rec.CharacterRun_Pattern or "default",
+            Pattern = ST.Data.PatternOf(rec),
             Key = key, Axis = axis, Level = tonumber(id), Time = m[clockField],
           }
         end

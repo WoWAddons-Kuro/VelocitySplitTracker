@@ -95,7 +95,7 @@ local function NewGridPanel(parent, spec)
       if not b.cell then return end
       GameTooltip:SetOwner(b, "ANCHOR_RIGHT")
       GameTooltip:SetText(b.cell.CharName .. (ST.db.Characters[b.cell.CharKey] and (" " .. U.FormatFirstSeen(ST.db.Characters[b.cell.CharKey].CharacterRun_CreatedAt)) or ""), 1, 1, 1)
-      GameTooltip:AddLine("pattern: " .. (b.cell.Pattern or "default"), 0.7, 0.7, 0.7)
+      GameTooltip:AddLine("pattern: " .. (b.cell.Pattern or "personal"), 0.7, 0.7, 0.7)
       if b.cell.Count > 1 then GameTooltip:AddLine(string.format("best of %d characters", b.cell.Count), 0.7, 0.7, 0.7) end
       GameTooltip:AddLine("click: open in History", 0.5, 0.8, 0.5)
       GameTooltip:Show()

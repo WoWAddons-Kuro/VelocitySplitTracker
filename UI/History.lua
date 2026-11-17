@@ -36,7 +36,7 @@ local function ComputePBs()
   local field = ClockField()
   local best = {}   -- groupKey -> { key=, level=, t= }
   for key, rec in pairs(ST.db.Characters) do
-    local group = (rec.CharacterRun_StartZone or "?") .. "|" .. (rec.CharacterRun_ClassFile or "?") .. "|" .. (rec.CharacterRun_Pattern or "default")
+    local group = (rec.CharacterRun_StartZone or "?") .. "|" .. (rec.CharacterRun_ClassFile or "?") .. "|" .. (ST.Data.PatternOf(rec))
     local lvl, t = 1, nil
     for n = D.MaxLevel, 2, -1 do
       local m = rec.Milestones[D.Key("level", n)]
@@ -331,7 +331,7 @@ function H.ShowDetail(key)
     d.heading:SetText("|cff999999No run selected.|r"); d.sub:SetText("")
     return
   end
-  d.heading:SetText(string.format("%s  -  %s / %s / %s", U.RunDisplayName(rec), rec.CharacterRun_StartZone or "?", ST.Compare.ClassLabel(rec.CharacterRun_ClassFile), rec.CharacterRun_Pattern or "default"))
+  d.heading:SetText(string.format("%s  -  %s / %s / %s", U.RunDisplayName(rec), rec.CharacterRun_StartZone or "?", ST.Compare.ClassLabel(rec.CharacterRun_ClassFile), ST.Data.PatternOf(rec)))
   d.sub:SetText(string.format("Level %s   Active %s   Played %s%s", tostring(rec.CharacterRun_Level or "?"), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total), rec.CharacterRun_Frozen and "   |cff8888aafrozen at 60|r" or ""))
   local rows = MilestoneRows(rec)
   for i, it in ipairs(rows) do
@@ -367,9 +367,12 @@ function H.NamePattern(key)
 end
 
 function H.SetPattern(key, name)
-  local rec = ST.db.Characters[key]; if not rec then return end
+  local rec = key and ST.db.Characters[key]
+  if not rec then U.Print("|cffff4040pattern not set:|r no run for key %s", tostring(key)); return end
   name = name and name:match("^%s*(.-)%s*$") or ""
-  rec.CharacterRun_Pattern = (name ~= "" and name ~= "default") and name or nil
+  local before = rec.CharacterRun_Pattern
+  rec.CharacterRun_Pattern = (name ~= "" and name ~= "personal" and name ~= "default") and name or nil
+  U.Print("pattern for %s: %s -> %s", rec.CharacterRun_Name or key, tostring(before or ST.Data.DefaultPattern), tostring(rec.CharacterRun_Pattern or ST.Data.DefaultPattern))
   ST.Compare.Invalidate()
   H.Refresh()
   if ST.Live then ST.Live.Refresh() end
@@ -389,7 +392,7 @@ end
 
 function H.CopyAsText(key)
   local rec = ST.db.Characters[key]; if not rec then return end
-  local parts = { string.format("%s %s %s mode=%s %s L%s active=%s played=%s |", rec.CharacterRun_Name, rec.CharacterRun_StartZone, rec.CharacterRun_ClassFile, rec.CharacterRun_Mode or "unknown", rec.CharacterRun_Pattern or "default", tostring(rec.CharacterRun_Level), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total)) }
+  local parts = { string.format("%s %s %s mode=%s %s L%s active=%s played=%s |", rec.CharacterRun_Name, rec.CharacterRun_StartZone, rec.CharacterRun_ClassFile, rec.CharacterRun_Mode or "unknown", ST.Data.PatternOf(rec), tostring(rec.CharacterRun_Level), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total)) }
   for _, it in ipairs(MilestoneRows(rec)) do
     if not it.Inferred then parts[#parts + 1] = string.format("%s=%s", it.Label, U.FormatTime(it.Active)) end
   end

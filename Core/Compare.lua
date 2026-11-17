@@ -16,7 +16,7 @@ function C.Key()
   return {
     StartZone = zone,
     Class = cfg.CompareClass or rec.CharacterRun_ClassFile,   -- "ANY" or a class file
-    Pattern = cfg.ComparePattern or "default",
+    Pattern = cfg.ComparePattern or ST.Data.DefaultPattern,
   }
 end
 
@@ -36,8 +36,8 @@ function C.Candidates()
     local modeOK = not sameModeOnly or (rec.CharacterRun_Mode or "unknown") == (meRec.CharacterRun_Mode or "unknown") or (rec.CharacterRun_Reference and (rec.CharacterRun_Mode or "unknown") == "unknown")
     if k ~= me and zoneOK and modeOK then
       local classOK = key.Class == "ANY" or rec.CharacterRun_ClassFile == key.Class
-      local pat = rec.CharacterRun_Pattern or "default"
-      local patOK = (pat == key.Pattern) or (key.Pattern == "default" and includeNamedInDefault)
+      local pat = ST.Data.PatternOf(rec)
+      local patOK = (pat == key.Pattern) or (key.Pattern == ST.Data.DefaultPattern and includeNamedInDefault)
       if classOK and patOK then out[#out + 1] = rec end
     end
   end
@@ -253,9 +253,10 @@ function C.PatternOptions()
   for _, rec in pairs(ST.db.Characters) do
     if (zone == "ANY" or rec.CharacterRun_StartZone == zone) and rec.CharacterRun_Pattern then set[rec.CharacterRun_Pattern] = true end
   end
-  local list = { "default" }
+  local def = ST.Data.DefaultPattern
+  local list = { def }
   for p in pairs(set) do list[#list + 1] = p end
-  table.sort(list, function(a, b) if a == "default" then return true elseif b == "default" then return false end return a < b end)
+  table.sort(list, function(a, b) if a == def then return true elseif b == def then return false end return a < b end)
   return list
 end
 

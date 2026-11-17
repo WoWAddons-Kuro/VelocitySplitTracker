@@ -29,6 +29,10 @@ D.RidingSpells = {
 }
 
 D.MaxLevel = 60
+-- Display/compare name for a run with no named routing pattern (stored as nil). "personal" because
+-- that is what it is: your own unnamed run, as opposed to a named route you are curating.
+D.DefaultPattern = "personal"
+function D.PatternOf(rec) return (rec and rec.CharacterRun_Pattern) or D.DefaultPattern end
 D.RidingShowFromLevel = 38
 D.SkillStep = 50
 D.SkillCeiling = 300         -- absolute max a profession can reach on this client
