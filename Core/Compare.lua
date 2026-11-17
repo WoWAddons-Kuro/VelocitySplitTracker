@@ -47,10 +47,105 @@ end
 local cache, cacheStamp = {}, 0
 function C.Invalidate() cache = {}; cacheStamp = cacheStamp + 1 end
 
--- Best (lowest) time for a milestone key across candidates, or nil.
-function C.Best(key)
+
+------------------------------------------------------------------------
+-- Comparison target (SPEC 5.1): Auto | Run | BestSplits | None, stored per (zone|class) context.
+------------------------------------------------------------------------
+local function ContextKey()
+  local rec = ST.Record.Current()
+  return (rec.CharacterRun_StartZone or "?") .. "|" .. (rec.CharacterRun_ClassFile or "?")
+end
+
+local function StoredTarget()
+  local cfg = ST.db.Config
+  cfg.Compare_ByContext = cfg.Compare_ByContext or {}
+  return cfg.Compare_ByContext[ContextKey()]
+end
+
+function C.SetTarget(mode, runKey)
+  local cfg = ST.db.Config
+  cfg.Compare_ByContext = cfg.Compare_ByContext or {}
+  cfg.Compare_ByContext[ContextKey()] = { Mode = mode, RunKey = runKey }
+  C.Invalidate()
+end
+
+-- Extent of a run = highest real level milestone; second return = its clock there.
+function C.Extent(rec)
+  local D = ST.Data
   local field = ClockField()
-  local ck = field .. "|" .. key
+  for n = D.MaxLevel, 2, -1 do
+    local m = rec.Milestones[D.Key("level", n)]
+    if m and not m.Inferred and m[field] then return n, m[field] end
+  end
+  return 1, 0
+end
+
+local function TimeAtLevel(rec, n)
+  local m = rec.Milestones[ST.Data.Key("level", n)]
+  return (m and not m.Inferred) and m[ClockField()] or nil
+end
+
+-- Candidates ranked in Auto order (SPEC 5.1.1): eligible (extent > player level) first, by
+-- end time asc; ties by extent desc, then time at level+1 asc, then name.
+function C.RankedCandidates()
+  local level = UnitLevel("player")
+  local list = {}
+  for _, rec in ipairs(C.Candidates()) do
+    local ext, endT = C.Extent(rec)
+    list[#list + 1] = { Rec = rec, Key = rec.CharacterRun_Key, Extent = ext, EndTime = endT, Eligible = ext > level, NextT = TimeAtLevel(rec, level + 1) }
+  end
+  table.sort(list, function(a, b)
+    if a.Eligible ~= b.Eligible then return a.Eligible end
+    if a.EndTime ~= b.EndTime then return a.EndTime < b.EndTime end
+    if a.Extent ~= b.Extent then return a.Extent > b.Extent end
+    local an, bn = a.NextT or math.huge, b.NextT or math.huge
+    if an ~= bn then return an < bn end
+    return (a.Rec.CharacterRun_Name or "") < (b.Rec.CharacterRun_Name or "")
+  end)
+  return list
+end
+
+function C.AutoPick()
+  local ranked = C.RankedCandidates()
+  return ranked[1] and ranked[1].Rec or nil
+end
+
+-- Resolve the active target: { Mode, Run (rec or nil), RunKey }
+local lastAutoKey
+function C.Target()
+  local stored = StoredTarget()
+  local mode = stored and stored.Mode or "Auto"
+  if mode == "Run" then
+    local run = stored.RunKey and ST.db.Characters[stored.RunKey]
+    if run then return { Mode = "Run", Run = run, RunKey = stored.RunKey } end
+    C.SetTarget("Auto")
+    ST.Util.Print("the pinned comparison run no longer exists; back to auto select")
+    mode = "Auto"
+  end
+  if mode == "Auto" then
+    local run = C.AutoPick()
+    local key = run and run.CharacterRun_Key
+    if key ~= lastAutoKey then
+      if lastAutoKey ~= nil and run then ST.Util.Print("comparison: now vs %s", ST.Util.RunDisplayName(run)) end
+      lastAutoKey = key
+    end
+    return { Mode = "Auto", Run = run, RunKey = key }
+  end
+  return { Mode = mode }   -- BestSplits | None
+end
+
+function C.TargetLabel()
+  local t = C.Target()
+  if t.Mode == "None" then return "no comparison" end
+  if t.Mode == "BestSplits" then return "vs Best splits" end
+  if not t.Run then return "vs auto: (no runs yet)" end
+  return (t.Mode == "Auto" and "vs auto: " or "vs ") .. ST.Util.RunDisplayName(t.Run)
+end
+
+-- Lowest time for a milestone key across ALL candidates (the record), or nil.
+function C.BestAcrossCandidates(key)
+  local field = ClockField()
+  local ck = "all|" .. field .. "|" .. key
   if cache[ck] ~= nil then return cache[ck] or nil end
   local best
   for _, rec in ipairs(C.Candidates()) do
@@ -61,15 +156,38 @@ function C.Best(key)
   return best
 end
 
+-- The comparison time for a milestone under the active mode, or nil.
+function C.Best(key)
+  local t = C.Target()
+  if t.Mode == "None" then return nil end
+  if t.Mode == "BestSplits" then return C.BestAcrossCandidates(key) end
+  if not t.Run then return nil end
+  local m = t.Run.Milestones[key]
+  if m and not m.Inferred then return m[ClockField()] end
+  return nil
+end
+
+-- True if `time` beats every candidate for this milestone (gold in Run/Auto mode).
+function C.IsRecord(key, time)
+  local best = C.BestAcrossCandidates(key)
+  return best ~= nil and time < best
+end
+
 -- Milestones of one axis that candidate runs reached, with best time <= maxTime, that the
 -- current character has NOT reached, soonest first. Used for time-based upcoming rows
 -- (areas, first-learn) where there is no progress metric of our own.
 function C.UpcomingByTime(axis, maxTime, limit)
   local field = ClockField()
   local me = ST.Record.Current()
+  -- Run/Auto: the reference run only. BestSplits: the candidate pool. None: nothing.
+  local t = C.Target()
+  local pool
+  if t.Mode == "BestSplits" then pool = C.Candidates()
+  elseif (t.Mode == "Run" or t.Mode == "Auto") and t.Run then pool = { t.Run }
+  else return {} end
   local bestByKey, labelByKey = {}, {}
   local prefix = axis .. ":"
-  for _, rec in ipairs(C.Candidates()) do
+  for _, rec in ipairs(pool) do
     for key, m in pairs(rec.Milestones) do
       if key:sub(1, #prefix) == prefix and not m.Inferred and m[field] and m[field] <= maxTime and not me.Milestones[key] then
         if not bestByKey[key] or m[field] < bestByKey[key] then bestByKey[key] = m[field]; labelByKey[key] = m.Label end
@@ -87,8 +205,14 @@ end
 function C.BestLevelSegment(n)
   local field = ClockField()
   local D = ST.Data
+  -- Comparison level segment (level n-1 -> n) under the active mode.
+  local t = C.Target()
+  local pool
+  if t.Mode == "BestSplits" then pool = C.Candidates()
+  elseif (t.Mode == "Run" or t.Mode == "Auto") and t.Run then pool = { t.Run }
+  else return nil end
   local best
-  for _, rec in ipairs(C.Candidates()) do
+  for _, rec in ipairs(pool) do
     local a, b = rec.Milestones[D.Key("level", n - 1)], rec.Milestones[D.Key("level", n)]
     if n == 2 then a = { [field] = 0 } end
     if a and b and not b.Inferred and not a.Inferred then

@@ -144,6 +144,14 @@ function H.CreateIn(host)
   -- Import a reference run (VOD splits, another player's export)
   detail.btnImport = MakeButton(detail, "Import reference...", 130, function() ST.Reference.ShowImport() end)
   detail.btnImport:SetPoint("RIGHT", detail.btnDelete, "LEFT", -8, 0)
+  -- Pin the selected run as the live window's comparison target (SPEC 5.3)
+  detail.btnCompare = MakeButton(detail, "Compare against this run", 160, function()
+    if not selectedKey then return end
+    ST.Compare.SetTarget("Run", selectedKey)
+    if ST.Live then ST.Live.Refresh() end
+    U.Print("comparison pinned: vs %s", U.RunDisplayName(ST.db.Characters[selectedKey]))
+  end)
+  detail.btnCompare:SetPoint("RIGHT", detail.btnImport, "LEFT", -8, 0)
 
   -- milestone table: scrollable, fixed columns
   detail.tableHeader = CreateFrame("Frame", nil, detail)

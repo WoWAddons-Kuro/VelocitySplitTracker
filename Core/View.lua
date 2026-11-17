@@ -41,7 +41,8 @@ function V.Done(limit)
   for i = math.max(1, #list - limit + 1), #list do
     local item = list[i]
     item.Best = ST.Compare.Best(item.Key)
-    item.Gold = item.Best ~= nil and item.Time < item.Best
+    -- Gold = a true record: faster than every candidate (not just the reference run).
+    item.Gold = ST.Compare.IsRecord(item.Key, item.Time)
     out[#out + 1] = item
   end
   -- Guarantee the previous level row. It is exempt from the done-window: use the recorded
@@ -56,7 +57,7 @@ function V.Done(limit)
     local row = { Key = prevKey, Axis = "level", Label = "Level " .. level, Best = ST.Compare.Best(prevKey) }
     if m and not m.Inferred then
       row.Time = m[field]
-      row.Gold = row.Best ~= nil and row.Time < row.Best
+      row.Gold = ST.Compare.IsRecord(prevKey, row.Time)
     else
       row.Inferred = true
     end

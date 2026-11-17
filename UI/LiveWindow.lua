@@ -241,6 +241,13 @@ local function BuildTitle(f)
   title.clock = Clickable(function(b) L.ShowClockMenu(b) end)
   title.clock:SetPoint("LEFT", title.dash2, "RIGHT", 4, 0)
 
+  -- Second line: the comparison target ("vs auto: <run>" / "vs <run>" / "vs Best splits" / "no comparison")
+  title.vs = Clickable(function(b) L.ShowTargetMenu(b) end)
+  title.vs:SetPoint("TOPLEFT", title.zone, "BOTTOMLEFT", 0, -2)
+  title.vs.text:SetFont(T.Font, T.TitleSize - 1, "")
+  -- the first line sits in the upper half now
+  title.zone:ClearAllPoints(); title.zone:SetPoint("TOPLEFT", menuBtn, "TOPRIGHT", 5, 1)
+
   title.sep = T.Separator(f)
   title.sep:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, 0)
   title.sep:SetPoint("TOPRIGHT", title, "BOTTOMRIGHT", 0, 0)
@@ -358,6 +365,7 @@ function L.Refresh()
   tt.class:SetLabel(V.CompareKey.Class)
   tt.pattern:SetLabel(V.CompareKey.Pattern)
   tt.clock:SetLabel(cfg.Clock == "PLAYED" and "Played" or "Active")
+  tt.vs:SetLabel(ST.Compare.TargetLabel())
   tt.level:SetText(tostring(V.Level))
   L.UpdateLock()
 
@@ -547,6 +555,24 @@ function L.ShowClockMenu(anchor)
     { text = "Active  (played time while doing something)", checked = Cfg().Clock ~= "PLAYED", func = function() Set("ACTIVE") end },
     { text = "Played  (total /played)",                      checked = Cfg().Clock == "PLAYED", func = function() Set("PLAYED") end },
   })
+end
+
+-- The "vs" dropdown (SPEC 5.3): check column, Auto select, top-N runs in Auto rank order,
+-- then Best splits / No comparison.
+function L.ShowTargetMenu(anchor)
+  local t = ST.Compare.Target()
+  local items = { { text = "Auto select", checked = t.Mode == "Auto", func = function() ST.Compare.SetTarget("Auto"); L.Refresh() end } }
+  local ranked = ST.Compare.RankedCandidates()
+  local maxRuns = Cfg().Compare_DropdownRuns or 5
+  for i = 1, math.min(maxRuns, #ranked) do
+    local r = ranked[i]
+    local label = U.RunDisplayName(r.Rec) .. (r.Rec.CharacterRun_Reference and " (ref)" or "") .. (r.Eligible and "" or "  |cff777777(behind you)|r")
+    items[#items + 1] = { text = label, checked = (t.Mode == "Run" and t.RunKey == r.Key), func = function() ST.Compare.SetTarget("Run", r.Key); L.Refresh() end }
+  end
+  items[#items + 1] = { separator = true }
+  items[#items + 1] = { text = "Best splits", checked = t.Mode == "BestSplits", func = function() ST.Compare.SetTarget("BestSplits"); L.Refresh() end }
+  items[#items + 1] = { text = "No comparison", checked = t.Mode == "None", func = function() ST.Compare.SetTarget("None"); L.Refresh() end }
+  T.ShowMenu(anchor, items)
 end
 
 function L.ShowContextMenuImpl(anchor)

@@ -483,6 +483,8 @@ function M.Init()
     if event == "PLAYER_LEVEL_UP" then
       local level = ...
       ST.Record.Current().CharacterRun_Level = level
+      -- Auto comparison re-evaluates on every ding (the pick can hand off to a longer run)
+      ST.Compare.Invalidate()
       local key = D.Key("level", level)
       ST.Record.Hit(key, "Level " .. level)
       -- XP the level just completed required (UnitXPMax of the level we were on), for XP/min.
