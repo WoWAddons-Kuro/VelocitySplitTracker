@@ -86,6 +86,8 @@ SplitTimerDB = {
 | Profession | `skill:<skillName>:<n>` n ∈ 50,100,150,…,300 (configurable step) | `SKILL_LINES_CHANGED` / `CHAT_MSG_SKILL` → `GetProfessions/GetProfessionInfo` (works here) merged with `GetSkillLineInfo` if present, plus the chat line `SKILL_RANK_UP` parsed directly. Steps already passed at login are back-filled as `Inferred`. | `Skinning 150` |
 | Profession learned | `learn:<skillName>` | first time a tracked profession appears in the skill list after a skill event (baseline scan → `Inferred`). Upcoming row "Learn X" shows once the clock reaches `Attention_TimeNearPct` (0.80) of the comparison run's time. | `Learned Skinning` |
 | Money acquired | `gold:<copper>` at 100 / 1 000 / 10 000 / 100 000 / 1 000 000 / 10 000 000 (1s 10s 1g 10g 100g 1000g) | `PLAYER_MONEY` positive deltas summed into `GoldAcquired_Copper` (skipped while mail/trade window open). Existing characters seed from purse, passed steps `Inferred`. | `Money Acquired - 10s` |
+| Area entered | `area:<Zone>/<Subzone>` | `ZONE_CHANGED` / `_INDOORS` / `_NEW_AREA` → `GetRealZoneText()` + `GetSubZoneText()`; first time per character. Login area is `Inferred`. Upcoming: comparison run's next unentered areas at 80 % of their time. Automatic, no setup. | `Enter Coldridge Pass` |
+| Location reached | `loc:<slug>` | user-defined per start zone (`Plans[zone].Locations`: Map, X, Y, Radius=10 yd) via hamburger → *Add location split here…*. Polled 1 s against the 3 nearest unreached points on the current map (shortlist re-sorted every 10 s). Upcoming within 200 yd. | `Reach <name>` |
 | Manual | `manual:<slug>` | `/split hit <name>` or click **Split** button | user text |
 
 - A milestone is recorded **once** (first time). Re-triggering is ignored.
