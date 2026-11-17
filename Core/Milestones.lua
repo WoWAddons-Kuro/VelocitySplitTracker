@@ -144,8 +144,10 @@ function M.CheckSkills()
   local now = GetTime()
   for _, s in ipairs(M.Skills()) do
     -- Any rank gain marks the skill "active" for a while so its next step shows in the window.
+    -- A missing baseline counts as a gain too: if we are here because of a skill-up event,
+    -- the very first observation IS the gain, and we must not silently swallow it.
     local prev = skillRankSnapshot[s.Name]
-    if prev ~= nil and s.Rank > prev then
+    if (prev ~= nil and s.Rank > prev) or (prev == nil and M._skillEventPending) then
       M.SkillActiveUntil[s.Name] = now + (ST.db.Config.SkillActiveSeconds or D.SkillActiveSeconds)
     end
     skillRankSnapshot[s.Name] = s.Rank
@@ -153,6 +155,7 @@ function M.CheckSkills()
       ST.Record.Hit(D.Key("skill", s.Name, n), s.Name .. " " .. n)
     end
   end
+  M._skillEventPending = false
 end
 
 function M.SkillIsActive(name)
@@ -277,6 +280,7 @@ function M.Init()
       if event == "CHAT_MSG_SKILL" then
         local name = M.ParseSkillChat((...))
         if name then M.SkillActiveUntil[name] = GetTime() + (ST.db.Config.SkillActiveSeconds or D.SkillActiveSeconds) end
+        M._skillEventPending = true
       end
       M.CheckSkills(); if ST.Live then ST.Live.QueueRefresh() end
       -- drop the row again once the active window lapses
