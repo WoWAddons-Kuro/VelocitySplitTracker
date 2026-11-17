@@ -37,8 +37,10 @@ local function CreateRow(parent)
   row.capTick = T.Texture(row, T.Colour.CapTick, "ARTWORK")
   row.capTick:SetWidth(2)
   row.capTick:Hide()
-  row.trainTick = T.Texture(row, T.Colour.TrainTick, "ARTWORK")
-  row.trainTick:SetWidth(2)
+  row.trainTick = T.Texture(row, T.Colour.TrainTick, "OVERLAY")
+  row.trainTick:SetSize(7, 7)
+  if row.trainTick.SetRotation then row.trainTick:SetRotation(math.pi / 4) end
+  if row.SetClipsChildren then row:SetClipsChildren(true) end
   row.trainTick:Hide()
   row.icon = row:CreateTexture(nil, "ARTWORK")
   row.icon:SetSize(T.RowHeight - 6, T.RowHeight - 6)
@@ -129,14 +131,14 @@ local function FillUpcomingRow(row, item, width)
   else
     row.capBand:Hide(); row.capTick:Hide()
   end
-  -- Train tick: medium-height line where the next tier becomes trainable. Stays visible after
-  -- you pass it (faint) as a reminder that training is available.
+  -- Train marker: small up-pointing triangle on the bottom margin where the next tier becomes
+  -- trainable. Stays visible after you pass it (faint) as a reminder that training is available.
   if item.TrainFraction and item.TrainFraction < 1 then
     local tx = width * item.TrainFraction
     row.trainTick:SetAlpha(item.Progress and item.Progress >= item.TrainFraction and 0.45 or 0.9)
     row.trainTick:ClearAllPoints()
-    row.trainTick:SetPoint("TOP", row, "TOPLEFT", tx, -3)
-    row.trainTick:SetPoint("BOTTOM", row, "BOTTOMLEFT", tx, 3)
+    -- a 7x7 square rotated 45 degrees, centred on the bottom edge; the row clips the lower half
+    row.trainTick:SetPoint("CENTER", row, "BOTTOMLEFT", tx, 0)
     row.trainTick:Show()
   else
     row.trainTick:Hide()
