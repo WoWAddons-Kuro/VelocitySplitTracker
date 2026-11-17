@@ -93,6 +93,7 @@ D.AxisIcon = {
   skill = nil,          -- resolved per skill via SkillIcon
   gold  = "Interface\\Icons\\INV_Misc_Coin_02",
   learn = nil,          -- resolved per skill via SkillIcon
+  death = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8",   -- skull
   riding = nil, mounted = nil, zone = nil, manual = nil,
 }
 

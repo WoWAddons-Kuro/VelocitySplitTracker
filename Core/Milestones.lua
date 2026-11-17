@@ -317,6 +317,49 @@ M._areaBaselinePending = true
 function M.CurrentAreaKey() return lastAreaKey end
 
 ------------------------------------------------------------------------
+-- Deaths. death:<n> split on PLAYER_DEAD; the rez type is written back onto that milestone:
+-- CONFIRM_XP_LOSS fires when the player talks to a spirit healer, so a PLAYER_UNGHOST within
+-- 30 s of it is a spirit rez, otherwise a corpse run. (Deliberate deaths are a route tool.)
+------------------------------------------------------------------------
+local lastDeathKey, lastDeathAt, lastSpiritPromptAt
+
+function M.DeathCount()
+  return ST.Record.Current().Deaths_Count or 0
+end
+
+local function OnDeath()
+  local rec = ST.Record.Current()
+  rec.Deaths_Count = (rec.Deaths_Count or 0) + 1
+  local n = rec.Deaths_Count
+  lastDeathKey = D.Key("death", n)
+  lastDeathAt = GetTime()
+  ST.Record.Hit(lastDeathKey, "Death #" .. n)
+  if ST.Live then ST.Live.QueueRefresh() end
+end
+
+local function OnSpiritPrompt() lastSpiritPromptAt = GetTime() end
+
+local function OnUnghost()
+  if not lastDeathKey then return end
+  local rec = ST.Record.Current()
+  local m = rec.Milestones[lastDeathKey]
+  if m and not m.Rez then
+    local spirit = lastSpiritPromptAt and (GetTime() - lastSpiritPromptAt) < 30
+    m.Rez = spirit and "spirit" or "corpse"
+    m.RezAfter = lastDeathAt and math.floor(GetTime() - lastDeathAt + 0.5) or nil
+    m.Label = string.format("Death #%s (%s, %s)", lastDeathKey:match(":(%d+)$") or "?", m.Rez, m.RezAfter and U.FormatTime(m.RezAfter) or "?")
+    U.Print("%s", m.Label)
+  end
+  lastDeathKey, lastDeathAt, lastSpiritPromptAt = nil, nil, nil
+  if ST.Live then ST.Live.QueueRefresh() end
+end
+
+-- Login baseline: a dead/ghost character at login must not count as a new death.
+function M.SeedDeathState()
+  if UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") then lastDeathKey = nil end
+end
+
+------------------------------------------------------------------------
 -- Gold acquired: cumulative positive money deltas (loot, vendor, quest rewards).
 -- Deltas while the mail or trade window is open are not "acquired" and are skipped.
 ------------------------------------------------------------------------
@@ -426,6 +469,9 @@ function M.Init()
   Reg("PLAYER_MONEY")
   Reg("ZONE_CHANGED")
   Reg("ZONE_CHANGED_INDOORS")
+  Reg("PLAYER_DEAD")
+  Reg("PLAYER_UNGHOST")
+  Reg("CONFIRM_XP_LOSS")
   -- First-mount detection: a slow poll instead of UNIT_AURA (which fires constantly in combat).
   local o = U.Phase("NewTicker")
   C_Timer.NewTicker(3, function()
@@ -467,6 +513,12 @@ function M.Init()
       OnZone(); OnArea()
     elseif event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS" then
       OnArea()
+    elseif event == "PLAYER_DEAD" then
+      OnDeath()
+    elseif event == "CONFIRM_XP_LOSS" then
+      OnSpiritPrompt()
+    elseif event == "PLAYER_UNGHOST" then
+      OnUnghost()
     elseif event == "PLAYER_XP_UPDATE" then
       if ST.Live then ST.Live.QueueRefresh() end
     elseif event == "PLAYER_TARGET_CHANGED" then

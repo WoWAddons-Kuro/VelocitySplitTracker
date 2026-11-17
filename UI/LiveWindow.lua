@@ -287,6 +287,15 @@ local function BuildFooter(f)
   footer.label = T.Text(footer, T.FontSize)
   footer.label:SetPoint("LEFT", T.Padding, 0)
   footer.label:SetText("Previous Segment")
+  -- death counter, lower right, only when > 0: skull icon + count
+  footer.deathIcon = footer:CreateTexture(nil, "ARTWORK")
+  footer.deathIcon:SetSize(12, 12)
+  footer.deathIcon:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_8")   -- skull raid marker
+  footer.deathIcon:SetPoint("RIGHT", -T.Padding, 0)
+  footer.deathCount = T.Text(footer, T.FontSize)
+  footer.deathCount:SetPoint("RIGHT", footer.deathIcon, "LEFT", -2, 0)
+  T.SetColour(footer.deathCount, T.Colour.Behind)
+  footer.deathIcon:Hide(); footer.deathCount:Hide()
   footer.value = T.Text(footer, T.FontSize)
   footer.value:SetPoint("RIGHT", -T.Padding, 0)
   return footer
@@ -405,6 +414,17 @@ function L.Refresh()
   y = y - T.FooterHeight
   frame.footer.value:SetText(U.FormatDelta(V.PreviousSegmentDelta))
   T.SetColour(frame.footer.value, T.DeltaColour(V.PreviousSegmentDelta))
+  -- death counter: shown only when > 0; the segment delta moves left of it
+  local deaths = ST.Milestones.DeathCount()
+  frame.footer.value:ClearAllPoints()
+  if deaths > 0 then
+    frame.footer.deathCount:SetText(tostring(deaths))
+    frame.footer.deathIcon:Show(); frame.footer.deathCount:Show()
+    frame.footer.value:SetPoint("RIGHT", frame.footer.deathCount, "LEFT", -10, 0)
+  else
+    frame.footer.deathIcon:Hide(); frame.footer.deathCount:Hide()
+    frame.footer.value:SetPoint("RIGHT", -T.Padding, 0)
+  end
 
   frame:SetHeight(-y)
   L.UpdateTimer(V)
