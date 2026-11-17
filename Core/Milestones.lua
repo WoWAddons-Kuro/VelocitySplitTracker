@@ -15,6 +15,7 @@ local M = ST.Milestones
 local questSnapshot = {}
 -- QuestRecent[] = questIDs ordered most-recently-progressed first
 M.QuestRecent = {}
+M.QuestTouchedAt = {}            -- questID -> GetTime() of last objective progress
 local questTitleCache = {}
 
 local function QuestTitle(questID)
@@ -60,6 +61,15 @@ local function Touch(questID)
   for i, id in ipairs(M.QuestRecent) do if id == questID then table.remove(M.QuestRecent, i) break end end
   table.insert(M.QuestRecent, 1, questID)
   while #M.QuestRecent > 10 do table.remove(M.QuestRecent) end
+  M.QuestTouchedAt[questID] = GetTime()
+  -- refresh once the recent window lapses so the row drops on time
+  C_Timer.After((ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds) + 0.5, function() if ST.Live then ST.Live.QueueRefresh() end end)
+end
+
+-- Progressed within the attention window?
+function M.QuestRecentlyProgressed(questID)
+  local t = M.QuestTouchedAt[questID]
+  return t ~= nil and (GetTime() - t) < (ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds)
 end
 
 local firstScan = true
@@ -147,17 +157,22 @@ end
 function M.CheckSkills()
   local step = ST.db.Config.SkillStep or D.SkillStep
   local now = GetTime()
+  -- Baseline scan (login / no skill-up event pending): steps already passed are back-filled as
+  -- Inferred, exactly like levels - they are not splits achieved now.
+  local baseline = not M._skillEventPending
   for _, s in ipairs(M.Skills()) do
     -- Any rank gain marks the skill "active" for a while so its next step shows in the window.
     -- A missing baseline counts as a gain too: if we are here because of a skill-up event,
     -- the very first observation IS the gain, and we must not silently swallow it.
     local prev = skillRankSnapshot[s.Name]
     if (prev ~= nil and s.Rank > prev) or (prev == nil and M._skillEventPending) then
-      M.SkillActiveUntil[s.Name] = now + (ST.db.Config.SkillActiveSeconds or D.SkillActiveSeconds)
+      M.SkillActiveUntil[s.Name] = now + (ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds)
     end
     skillRankSnapshot[s.Name] = s.Rank
     for n = step, s.Rank - (s.Rank % step), step do
-      ST.Record.Hit(D.Key("skill", s.Name, n), s.Name .. " " .. n)
+      -- Only the step reached by THIS gain is a real split; anything older is inferred.
+      local inferred = baseline or (prev ~= nil and n <= prev)
+      ST.Record.Hit(D.Key("skill", s.Name, n), s.Name .. " " .. n, { Inferred = inferred })
     end
   end
   M._skillEventPending = false
@@ -207,18 +222,34 @@ local function CreatureIDFromGUID(guid)
   if kind == "Creature" or kind == "Vehicle" then return tonumber(id) end
 end
 local nameByCreatureID = {}
+local creatureIDByName = {}      -- learned from the player's target as they fight
 
-local function OnCombatLog()
-  local _, sub, _, sourceGUID, _, _, _, destGUID, destName = CombatLogGetCurrentEventInfo()
-  if sub ~= "PARTY_KILL" then return end
-  local playerGUID = UnitGUID("player")
-  local petGUID = UnitGUID("pet")
-  if sourceGUID ~= playerGUID and sourceGUID ~= petGUID then return end
-  local id = CreatureIDFromGUID(destGUID)
-  if id then
-    nameByCreatureID[id] = destName
-    ST.Record.Hit(D.Key("kill", id), destName)
+-- Remember the creature ID behind a name whenever we look at one (PLAYER_TARGET_CHANGED).
+function M.NoteTarget()
+  if not UnitExists("target") or UnitIsPlayer("target") then return end
+  local id = CreatureIDFromGUID(UnitGUID("target"))
+  local name = UnitName("target")
+  if id and name then creatureIDByName[name] = id; nameByCreatureID[id] = name end
+end
+
+-- Credit signal: "<Name> dies, you gain N experience." Pattern is built from the client's
+-- own format string so it works in any locale. (COMBAT_LOG_EVENT_UNFILTERED is forbidden here.)
+local xpPattern
+local function OnXPGainLine(msg)
+  if not xpPattern then
+    local fmt = COMBATLOG_XPGAIN_FIRSTPERSON or "%s dies, you gain %d experience."
+    xpPattern = "^" .. fmt:gsub("%%s", "(.-)"):gsub("%%d", "%%d+"):gsub("%.$", "%%.?")
   end
+  local name = msg:match(xpPattern)
+  if not name or name == "" then return end
+  -- Prefer a stable creature ID (seen via target); fall back to a name-keyed milestone.
+  local id = creatureIDByName[name]
+  if not id and UnitExists("target") and UnitName("target") == name then
+    id = CreatureIDFromGUID(UnitGUID("target"))
+    if id then creatureIDByName[name] = id; nameByCreatureID[id] = name end
+  end
+  local key = id and D.Key("kill", id) or D.Key("kill", "name", (name:gsub("%s+", "_")))
+  ST.Record.Hit(key, name)
 end
 
 function M.CreatureName(id) return nameByCreatureID[id] end
@@ -266,10 +297,13 @@ function M.Init()
   Reg("SPELLS_CHANGED")
   Reg("LEARNED_SPELL_IN_TAB")       -- Classic-era clients only
   Reg("LEARNED_SPELL_IN_SKILL_LINE") -- its Mainline successor
-  Reg("COMBAT_LOG_EVENT_UNFILTERED")
+  -- COMBAT_LOG_EVENT_UNFILTERED is a FORBIDDEN registration on this client (confirmed with the
+  -- ADDON_ACTION_FORBIDDEN probe). Kill credit comes from the XP-gain chat line instead.
+  Reg("CHAT_MSG_COMBAT_XP_GAIN")
   Reg("ZONE_CHANGED_NEW_AREA")
   Reg("PLAYER_ENTERING_WORLD")
   Reg("PLAYER_XP_UPDATE")
+  Reg("PLAYER_TARGET_CHANGED")
   -- First-mount detection: a slow poll instead of UNIT_AURA (which fires constantly in combat).
   local o = U.Phase("NewTicker")
   C_Timer.NewTicker(3, function()
@@ -305,12 +339,14 @@ function M.Init()
       if expiry then C_Timer.After(expiry - GetTime() + 0.5, function() if ST.Live then ST.Live.QueueRefresh() end end) end
     elseif event == "SPELLS_CHANGED" or event == "LEARNED_SPELL_IN_TAB" or event == "LEARNED_SPELL_IN_SKILL_LINE" then
       M.CheckRiding()
-    elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
-      OnCombatLog()
+    elseif event == "CHAT_MSG_COMBAT_XP_GAIN" then
+      OnXPGainLine((...))
     elseif event == "ZONE_CHANGED_NEW_AREA" then
       OnZone()
     elseif event == "PLAYER_XP_UPDATE" then
       if ST.Live then ST.Live.QueueRefresh() end
+    elseif event == "PLAYER_TARGET_CHANGED" then
+      M.NoteTarget()
     elseif event == "PLAYER_ENTERING_WORLD" then
       C_Timer.After(3, function()
         local o = U.Phase("Milestones.enterworld+3s")

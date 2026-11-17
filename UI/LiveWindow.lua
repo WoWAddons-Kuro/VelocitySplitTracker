@@ -176,6 +176,10 @@ local function BuildTitle(f)
   title.dash:SetPoint("LEFT", title.class, "RIGHT", 4, 0)
   title.pattern = Clickable(function(b) L.ShowPatternMenu(b) end)
   title.pattern:SetPoint("LEFT", title.dash, "RIGHT", 4, 0)
+  title.dash2 = Dash()
+  title.dash2:SetPoint("LEFT", title.pattern, "RIGHT", 4, 0)
+  title.clock = Clickable(function(b) L.ShowClockMenu(b) end)
+  title.clock:SetPoint("LEFT", title.dash2, "RIGHT", 4, 0)
 
   title.sep = T.Separator(f)
   title.sep:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, 0)
@@ -283,6 +287,7 @@ function L.Refresh()
   tt.zone:SetText(V.CompareKey.StartZone)
   tt.class:SetLabel(V.CompareKey.Class)
   tt.pattern:SetLabel(V.CompareKey.Pattern)
+  tt.clock:SetLabel(cfg.Clock == "PLAYED" and "Played" or "Active")
   tt.level:SetText(tostring(V.Level))
   L.UpdateLock()
 
@@ -424,6 +429,18 @@ function L.ShowPatternMenu(anchor)
 end
 
 function L.ShowContextMenu(anchor)
+  L.ShowContextMenuImpl(anchor)
+end
+
+function L.ShowClockMenu(anchor)
+  local function Set(mode) Cfg().Clock = mode; ST.Compare.Invalidate(); L.Refresh() end
+  T.ShowMenu(anchor, {
+    { text = "Active  (played time while doing something)", checked = Cfg().Clock ~= "PLAYED", func = function() Set("ACTIVE") end },
+    { text = "Played  (total /played)",                      checked = Cfg().Clock == "PLAYED", func = function() Set("PLAYED") end },
+  })
+end
+
+function L.ShowContextMenuImpl(anchor)
   local cfg = Cfg()
   T.ShowMenu(anchor, {
     { title = "SplitTimer" },

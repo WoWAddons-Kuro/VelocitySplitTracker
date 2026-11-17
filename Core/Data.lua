@@ -32,8 +32,11 @@ D.MaxLevel = 60
 D.RidingShowFromLevel = 38
 D.SkillStep = 50
 D.SkillCeiling = 300         -- absolute max a profession can reach on this client
-D.SkillNearPct = 0.80
-D.SkillActiveSeconds = 180   -- a skill that just gained a point stays in the window this long
+-- Attention rules for quest / profession rows in the live window:
+D.Attention_NearPct = 0.90          -- at/over this fraction of the goal the row stays until completed
+D.Attention_RecentSeconds = 180     -- any progress keeps the row shown this long
+D.Attention_DoneSeconds = 45        -- a completed split stays in the done list this long
+D.SkillNearPct, D.SkillActiveSeconds = D.Attention_NearPct, D.Attention_RecentSeconds  -- legacy names
 
 -- Primary + the secondaries worth tracking. Keyed by English skill line name.
 D.TrackedSkills = {

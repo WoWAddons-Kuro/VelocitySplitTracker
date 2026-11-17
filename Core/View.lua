@@ -23,9 +23,13 @@ end
 function V.Done(limit)
   local rec = ST.Record.Current()
   local field = ClockField()
+  -- Done rows: the previous level (always, added below), plus every real split completed within
+  -- Attention_DoneSeconds. Inferred milestones (back-filled at login) never appear.
+  local now = time()
+  local doneWindow = ST.db.Config.Attention_DoneSeconds or D.Attention_DoneSeconds
   local list = {}
   for key, m in pairs(rec.Milestones) do
-    if not m.Inferred then
+    if not m.Inferred and m.At and (now - m.At) <= doneWindow then
       local axis = D.ParseKey(key)
       if axis ~= "questaccept" and axis ~= "zone" then
         list[#list + 1] = { Key = key, Axis = axis, Label = MilestoneLabel(key, m), Time = m[field], At = m.At }
@@ -66,24 +70,27 @@ function V.Upcoming(limit)
       Progress = xpMax > 0 and xp / xpMax or 0, Current = true }
   end
 
-  -- 3 most recently progressed quests still in the log
+  -- Quests: shown while recently progressed (Attention_RecentSeconds) or complete-in-log (sticky).
   local shown = 0
   for _, questID in ipairs(ST.Milestones.QuestRecent) do
     if shown >= 3 then break end
     local key = D.Key("quest", questID)
     if not rec.Milestones[key] then
-      local title = ST.Milestones.QuestTitle(questID) or ("Quest " .. questID)
       local complete = ST.Milestones.QuestIsComplete(questID)
-      out[#out + 1] = { Key = key, Axis = "quest", Label = title, Best = ST.Compare.Best(key), Progress = complete and 1 or nil }
-      shown = shown + 1
+      local recent = ST.Milestones.QuestRecentlyProgressed(questID)
+      if complete or recent then
+        local title = ST.Milestones.QuestTitle(questID) or ("Quest " .. questID)
+        out[#out + 1] = { Key = key, Axis = "quest", Label = title, Best = ST.Compare.Best(key), Progress = complete and 1 or nil, Sticky = complete }
+        shown = shown + 1
+      end
     end
   end
 
-  -- professions near their next step
+  -- Professions: shown while recently progressed, or at/over Attention_NearPct of the next step (sticky).
   local step = cfg.SkillStep or D.SkillStep
   for _, s in ipairs(ST.Milestones.Skills()) do
     local nextStep = (math.floor(s.Rank / step) + 1) * step
-    local near = s.Rank / nextStep >= (cfg.SkillNearPct or D.SkillNearPct)
+    local near = s.Rank / nextStep >= (cfg.Attention_NearPct or D.Attention_NearPct)
     local active = ST.Milestones.SkillIsActive(s.Name)
     -- Not gated on the current trainer cap (s.Max): the cap rises with training, the
     -- milestone is still "next 50". Only the absolute skill ceiling applies.

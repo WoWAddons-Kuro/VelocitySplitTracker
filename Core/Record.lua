@@ -69,6 +69,8 @@ function R.Hit(key, label, extra)
   end
   ST.Clock.Activity()
   if ST.Live then ST.Live.QueueRefresh() end
+  -- and again when this split should leave the done list
+  C_Timer.After((ST.db.Config.Attention_DoneSeconds or D.Attention_DoneSeconds) + 0.5, function() if ST.Live then ST.Live.QueueRefresh() end end)
   return true
 end
 
