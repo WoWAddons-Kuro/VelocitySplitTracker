@@ -49,6 +49,17 @@ function U.CharacterDisplayName()
   return first
 end
 
+-- "[2026.10.02 11:42]" from a time() stamp (local time); "" if unknown.
+function U.FormatFirstSeen(epoch)
+  if not epoch or epoch <= 0 then return "" end
+  return date("[%Y.%m.%d %H:%M]", epoch)
+end
+
+-- "Kuro Lightfoot [2026.10.02 11:42]" for a character record.
+function U.RunDisplayName(rec)
+  return (rec.CharacterRun_Name or "?") .. " " .. U.FormatFirstSeen(rec.CharacterRun_CreatedAt)
+end
+
 function U.Print(msg, ...)
   if select("#", ...) > 0 then msg = string.format(msg, ...) end
   print("|cff5ad65aSplitTimer|r: " .. msg)

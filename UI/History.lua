@@ -14,7 +14,7 @@ local selectedKey
 -- Column layout for the run list: { title, width, justify }
 local COLUMNS = {
   { "",          14, "LEFT"  },   -- PB star
-  { "Character", 96, "LEFT"  },
+  { "Character", 200, "LEFT"  },
   { "Start zone",100, "LEFT"  },
   { "Class",     64, "LEFT"  },
   { "Lvl",       28, "RIGHT" },
@@ -228,7 +228,7 @@ function H.Refresh()
     local row = AcquireListRow(i)
     local c = row.cells
     c[1]:SetText(isPB[rec.CharacterRun_Key] and "|cfff2cc40*|r" or "")
-    c[2]:SetText((rec.CharacterRun_Key == me and "|cff5ad65a" or "") .. (rec.CharacterRun_Name or "?") .. (rec.CharacterRun_Frozen and " |cff8888aa(60)|r" or ""))
+    c[2]:SetText((rec.CharacterRun_Key == me and "|cff5ad65a" or "") .. (rec.CharacterRun_Name or "?") .. " |cff777777" .. U.FormatFirstSeen(rec.CharacterRun_CreatedAt) .. "|r" .. (rec.CharacterRun_Frozen and " |cff8888aa(60)|r" or ""))
     c[3]:SetText(rec.CharacterRun_StartZone or "?")
     c[4]:SetText(ST.Compare.ClassLabel(rec.CharacterRun_ClassFile))
     c[5]:SetText(tostring(rec.CharacterRun_Level or "?"))
@@ -298,8 +298,8 @@ function H.ShowDetail(key)
     d.heading:SetText("|cff999999No run selected.|r"); d.sub:SetText("")
     return
   end
-  d.heading:SetText(string.format("%s  -  %s / %s / %s", rec.CharacterRun_Name or "?", rec.CharacterRun_StartZone or "?", ST.Compare.ClassLabel(rec.CharacterRun_ClassFile), rec.CharacterRun_Pattern or "default"))
-  d.sub:SetText(string.format("Level %s   Active %s   Played %s   first seen %s%s", tostring(rec.CharacterRun_Level or "?"), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total), date("%Y-%m-%d", rec.CharacterRun_CreatedAt or 0), rec.CharacterRun_Frozen and "   |cff8888aafrozen at 60|r" or ""))
+  d.heading:SetText(string.format("%s  -  %s / %s / %s", U.RunDisplayName(rec), rec.CharacterRun_StartZone or "?", ST.Compare.ClassLabel(rec.CharacterRun_ClassFile), rec.CharacterRun_Pattern or "default"))
+  d.sub:SetText(string.format("Level %s   Active %s   Played %s%s", tostring(rec.CharacterRun_Level or "?"), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total), rec.CharacterRun_Frozen and "   |cff8888aafrozen at 60|r" or ""))
   local rows = MilestoneRows(rec)
   for i, it in ipairs(rows) do
     local row = AcquireDetailRow(i)
