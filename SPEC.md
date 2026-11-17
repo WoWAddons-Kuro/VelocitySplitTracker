@@ -79,11 +79,11 @@ SplitTimerDB = {
 | Level | `level:<n>` 2..60 | `PLAYER_LEVEL_UP` (arg1 = new level); on login reconcile any missing lower levels **not** recorded (mark them with current times + `Inferred=true`, shown greyed) | `Level 10` |
 | Quest turn-in | `quest:<questID>` | `QUEST_TURNED_IN` (questID) | quest title via `C_QuestLog.GetTitleForQuestID` / `QuestUtils_GetQuestName`; cached in `Plan` entry as `Label` |
 | Quest accepted | `questaccept:<questID>` | `QUEST_ACCEPTED` | `Accept: <title>` |
-| NPC kill | `kill:<creatureID>` | `COMBAT_LOG_EVENT_UNFILTERED` `UNIT_DIED`/`PARTY_KILL` where destGUID creature id matches **and** player or party tagged it (we accept: `PARTY_KILL` with source player/pet, or `UNIT_DIED` while player had that GUID targeted/in combat with it in last 10 s) | creature name from GUID cache (`UNIT_TARGET` name capture) or plan `Label` |
+| NPC kill | `kill:<creatureID>` (or `kill:name:<slug>` if the ID was never seen) | `CHAT_MSG_COMBAT_XP_GAIN` "<Name> dies, you gain N experience." — the credit signal itself. Creature IDs are learned from `PLAYER_TARGET_CHANGED`. **`COMBAT_LOG_EVENT_UNFILTERED` cannot be registered by addons on this client** (`ADDON_ACTION_FORBIDDEN`, confirmed 2026-11-16). | name from the chat line |
 | Zone entered | `zone:<uiMapID>` | `ZONE_CHANGED_NEW_AREA` → `C_Map.GetBestMapForUnit("player")` | `C_Map.GetMapInfo(id).name` |
-| Riding | `riding:<rank>` 1..4 | `LEARNED_SPELL_IN_TAB` / `SPELLS_CHANGED` + `IsSpellKnown` for riding spell IDs (33388, 33391, 34090, 34091, 90265 etc. — verify list for this client) | `Apprentice Riding` |
+| Riding | `riding:<rank>` 1..4 | `SPELLS_CHANGED` / `LEARNED_SPELL_IN_SKILL_LINE` (`LEARNED_SPELL_IN_TAB` does not exist here) + `IsSpellKnown` for riding spell IDs (33388, 33391, 34090, 34091 — verify) | `Apprentice Riding` |
 | Mounted | `mounted:1` | first time `IsMounted()` is true (poll 1 s / `UNIT_AURA` player). Mount *purchase* is not reliably observable in Classic-style bags, so "first mounted" is the milestone | `First Mount` |
-| Profession | `skill:<skillName>:<n>` n ∈ 50,100,150,…,300 (configurable step) | `SKILL_LINES_CHANGED` / `CHAT_MSG_SKILL` → scan `GetNumSkillLines/GetSkillLineInfo` (Classic API) with fallback `GetProfessions/GetProfessionInfo` (Mainline). Records when `rank >= n` | `Skinning 150` |
+| Profession | `skill:<skillName>:<n>` n ∈ 50,100,150,…,300 (configurable step) | `SKILL_LINES_CHANGED` / `CHAT_MSG_SKILL` → `GetProfessions/GetProfessionInfo` (works here) merged with `GetSkillLineInfo` if present, plus the chat line `SKILL_RANK_UP` parsed directly. Steps already passed at login are back-filled as `Inferred`. | `Skinning 150` |
 | Manual | `manual:<slug>` | `/split hit <name>` or click **Split** button | user text |
 
 - A milestone is recorded **once** (first time). Re-triggering is ignored.
@@ -138,13 +138,14 @@ No border, dark translucent background (`Config.Bg_Alpha`), alternating row shad
 - Start zone is fixed by the character (not a dropdown). Right-click on title → context menu: Lock, Clock (Active/Played), Times side, Open History, Open Config, Pause.
 
 ### 6.2 "Upcoming" selection rules
-- Level: always show `level:<cur+1>` with XP progress `UnitXP/UnitXPMax`.
-- Quest turn-in: show if the quest is in the quest log **and** complete (`C_QuestLog.IsComplete`) or in log at all when `Config.Upcoming_ShowQuestInLog` (default: only when complete).
-- Kill: show if the creature's plan zone == current zone (plan entries carry optional `Zone`), or the creature's name has been seen as a nameplate/target in the last 5 min.
-- Profession: show next step when `rank/next >= Config.Upcoming_SkillNearPct` (default **0.80**).
+**Attention model** (decided 2026-11-16, replaces the earlier "near" rule):
+- Level: previous level (always, dim/no time if inferred) and `level:<cur+1>` with XP progress — always. No pinned Level 60 unless `Config.ShowFinalRow`.
+- Any **progress** on a quest objective or profession rank → that row is shown for `Attention_RecentSeconds` (**180 s**) from the last progress.
+- At/over `Attention_NearPct` (**0.90**) of the goal (quest complete-in-log counts as 100 %) → the row is **sticky** until completed.
+- A **completed** split (quest, profession step, kill) appears in the done list for `Attention_DoneSeconds` (**45 s**) and then disappears. The done list is *not* "the last N milestones".
+- Profession rows draw a red band + tick for the part of the goal above the current trainer cap (`CapFraction = trainerMax / nextStep`). The next 50-step is shown even above the cap.
 - Riding/Mounted: show `riding:1` from level 38 (configurable) until obtained, `mounted:1` after riding obtained.
-- Zone: show the next zone milestone of the plan that is not yet reached (plan order).
-- Cap `Config.Rows_Upcoming` (default 4); priority: level, then quests complete, then skill, then rest, by plan order.
+- Cap `Config.RowsUpcoming` (default 4); order: level, quests, professions, riding.
 
 ### 6.3 Big timer colour
 white = Active clock stopped (idle/paused) · green = last milestone ahead of best · red = behind · gold = last milestone was a new best · grey = run frozen (level 60).
@@ -208,11 +209,12 @@ SplitTimer/
 
 ## 10. Open questions / to verify in-game
 
-1. Profession API on this client: `GetSkillLineInfo` (Classic) vs `GetProfessionInfo` (Mainline). Code both; verify which exists.
+1. ~~Profession API~~ — **resolved**: `GetProfessions/GetProfessionInfo` works; both paths merged anyway.
 2. Dropdown API: `UIDropDownMenu_*` vs `MenuUtil.CreateContextMenu`. Code both behind `UI/Menu.lua`.
 3. `PLAYER_STARTED_MOVING` availability on 16001 — fallback is the speed poll either way.
 4. Riding spell IDs on this client (Classic set 33388/33391 vs later 34090/34091/90265).
-5. Kill attribution: is `PARTY_KILL` fired on this client? Otherwise use target-GUID heuristic.
+5. ~~Kill attribution~~ — **resolved**: combat log registration is FORBIDDEN here; XP-gain chat line is the credit signal.
 6. StartZone for a race: use race→zone table; if the character is first seen above level ~5 in another zone, still trust the race table (Human→Elwynn, etc.). OK?
 7. Should the big timer show **Active** by default (assumed yes) with Played small underneath?
 8. Rows_Done default 4 / Rows_Upcoming default 4 / idle 30 s / skill step 50 / near 80 % — tweak?
+9. **Client facts learned**: `RegisterEvent` throws on unknown event names (abort the whole function) — always register through a pcall helper. `LEARNED_SPELL_IN_TAB` is absent. `ChatFrame_DisplayTimePlayed` must not be overridden (taint). Skyborne race → "Zephras Isle". `/played` chat line is accepted once at login.
