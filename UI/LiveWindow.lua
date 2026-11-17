@@ -55,10 +55,9 @@ local function CreateRow(parent)
 end
 
 -- Lay a row out for the configured side. Times block = [delta][time].
+-- The icon column is always reserved so labels line up whether or not a row has an icon.
 local function LayoutRow(row, timesLeft)
   local p = T.Padding
-  local hasIcon = row.icon:IsShown()
-  local gap = hasIcon and 4 or 0
   row.icon:ClearAllPoints(); row.label:ClearAllPoints(); row.time:ClearAllPoints(); row.delta:ClearAllPoints()
   row.time:SetWidth(58)
   row.delta:SetWidth(48)
@@ -66,11 +65,11 @@ local function LayoutRow(row, timesLeft)
     row.delta:SetPoint("LEFT", row, "LEFT", p, 0)
     row.time:SetPoint("LEFT", row.delta, "RIGHT", 4, 0)
     row.icon:SetPoint("LEFT", row.time, "RIGHT", 6, 0)
-    if hasIcon then row.label:SetPoint("LEFT", row.icon, "RIGHT", gap, 0) else row.label:SetPoint("LEFT", row.time, "RIGHT", 6, 0) end
+    row.label:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
     row.label:SetPoint("RIGHT", row, "RIGHT", -p, 0)
   else
     row.icon:SetPoint("LEFT", row, "LEFT", p, 0)
-    if hasIcon then row.label:SetPoint("LEFT", row.icon, "RIGHT", gap, 0) else row.label:SetPoint("LEFT", row, "LEFT", p, 0) end
+    row.label:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
     row.time:SetPoint("RIGHT", row, "RIGHT", -p, 0)
     row.delta:SetPoint("RIGHT", row.time, "LEFT", -4, 0)
     row.label:SetPoint("RIGHT", row.delta, "LEFT", -4, 0)
@@ -133,14 +132,23 @@ local function BuildTitle(f)
 
   -- Subtle lock toggle in the corner
   local lock = CreateFrame("Button", nil, title)
-  lock:SetSize(12, 12)
-  lock:SetPoint("TOPRIGHT", -3, -3)
+  lock:SetSize(14, 14)
+  lock:SetPoint("TOPRIGHT", -3, -4)
+  lock:SetFrameLevel(title:GetFrameLevel() + 5)
+  lock:RegisterForClicks("LeftButtonUp")
   lock.tex = lock:CreateTexture(nil, "ARTWORK")
   lock.tex:SetAllPoints()
-  lock:SetAlpha(0.3)
-  lock:SetScript("OnEnter", function() lock:SetAlpha(0.9) end)
-  lock:SetScript("OnLeave", function() lock:SetAlpha(0.3) end)
-  lock:SetScript("OnClick", function() L.SetLocked(not Cfg().Locked) end)
+  lock:SetScript("OnEnter", function()
+    lock:SetAlpha(1)
+    GameTooltip:SetOwner(lock, "ANCHOR_LEFT")
+    GameTooltip:SetText(lock.locked and "Locked - click to unlock" or "Unlocked - click to lock", 1, 1, 1)
+    GameTooltip:Show()
+  end)
+  lock:SetScript("OnLeave", function() GameTooltip:Hide(); L.UpdateLock() end)
+  lock:SetScript("OnClick", function()
+    L.SetLocked(not Cfg().Locked)
+    GameTooltip:SetText(Cfg().Locked and "Locked - click to unlock" or "Unlocked - click to lock", 1, 1, 1)
+  end)
   title.lock = lock
 
   title.level = T.Text(title, T.TitleSize + 1)
@@ -419,8 +427,16 @@ end
 function L.UpdateLock()
   if not frame then return end
   local locked = Cfg().Locked
-  frame.title.lock.tex:SetTexture(locked and "Interface\\Buttons\\LockButton-Locked-Up" or "Interface\\Buttons\\LockButton-Unlocked-Up")
-  -- the Blizzard lock textures have padding; zoom in a touch
-  frame.title.lock.tex:SetTexCoord(0.2, 0.8, 0.2, 0.8)
-  frame.title.lock:SetAlpha(locked and 0.6 or 0.3)
+  local lock = frame.title.lock
+  lock.locked = locked
+  -- Blizzard lock textures have padding; zoom in a touch
+  lock.tex:SetTexCoord(0.2, 0.8, 0.2, 0.8)
+  if locked then
+    lock.tex:SetTexture("Interface\\Buttons\\LockButton-Locked-Up")
+    lock.tex:SetVertexColor(1.0, 0.82, 0.3, 1)   -- gold = locked
+  else
+    lock.tex:SetTexture("Interface\\Buttons\\LockButton-Unlocked-Up")
+    lock.tex:SetVertexColor(0.7, 0.7, 0.7, 1)    -- grey, open = unlocked
+  end
+  lock:SetAlpha(lock:IsMouseOver() and 1 or (locked and 0.75 or 0.35))
 end
