@@ -52,6 +52,9 @@ local function CreateRow(parent)
   row.time:SetJustifyH("RIGHT")
   row.delta = T.Text(row, T.FontSize)
   row.delta:SetJustifyH("RIGHT")
+  -- level segment delta "(+2:14)", one notch smaller, sits left of the cumulative delta
+  row.segment = T.Text(row, T.FontSize - 2)
+  row.segment:SetJustifyH("RIGHT")
   return row
 end
 
@@ -61,13 +64,15 @@ end
 local function LayoutRow(row, timesLeft)
   local p = T.Padding
   local hasDelta = (row.delta:GetText() or "") ~= ""
-  row.icon:ClearAllPoints(); row.label:ClearAllPoints(); row.time:ClearAllPoints(); row.delta:ClearAllPoints()
+  local hasSegment = (row.segment:GetText() or "") ~= ""
+  row.icon:ClearAllPoints(); row.label:ClearAllPoints(); row.time:ClearAllPoints(); row.delta:ClearAllPoints(); row.segment:ClearAllPoints()
   row.time:SetWidth(58)
   row.delta:SetWidth(48)
   if timesLeft then
     row.delta:SetPoint("LEFT", row, "LEFT", p, 0)
     row.time:SetPoint("LEFT", row.delta, "RIGHT", 4, 0)
-    row.icon:SetPoint("LEFT", row.time, "RIGHT", 6, 0)
+    row.segment:SetPoint("LEFT", row.time, "RIGHT", 4, 0)
+    row.icon:SetPoint("LEFT", hasSegment and row.segment or row.time, "RIGHT", 6, 0)
     row.label:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
     row.label:SetPoint("RIGHT", row, "RIGHT", -p, 0)
   else
@@ -75,7 +80,8 @@ local function LayoutRow(row, timesLeft)
     row.label:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
     row.time:SetPoint("RIGHT", row, "RIGHT", -p, 0)
     row.delta:SetPoint("RIGHT", row.time, "LEFT", -4, 0)
-    row.label:SetPoint("RIGHT", hasDelta and row.delta or row.time, "LEFT", -4, 0)
+    row.segment:SetPoint("RIGHT", row.delta, "LEFT", -4, 0)
+    row.label:SetPoint("RIGHT", hasSegment and row.segment or (hasDelta and row.delta or row.time), "LEFT", -4, 0)
   end
 end
 
@@ -99,6 +105,14 @@ local function FillDoneRow(row, item)
   T.SetColour(row.time, item.Inferred and T.Colour.TextDim or T.Colour.Text)
   row.delta:SetText(U.FormatDelta(delta))
   T.SetColour(row.delta, T.DeltaColour(delta, item.Gold))
+  -- Level rows: the (n-1 -> n) segment delta in parentheses, left of the cumulative delta.
+  -- "(+2:14)  +10:30  54:11" = lost 2:14 during this level, 10:30 behind in total, at 54:11.
+  if item.SegmentDelta then
+    row.segment:SetText("(" .. U.FormatDelta(item.SegmentDelta) .. ")")
+    T.SetColour(row.segment, T.DeltaColour(item.SegmentDelta), 0.85)
+  else
+    row.segment:SetText("")
+  end
   row.progress:Hide()
 end
 
@@ -307,26 +321,22 @@ local function BuildFooter(f)
   local footer = CreateFrame("Frame", nil, f)
   footer:SetHeight(T.FooterHeight)
   footer.bg = T.Texture(footer, T.Colour.RowAlt); footer.bg:SetAllPoints()
-  footer.label = T.Text(footer, T.FontSize)
-  footer.label:SetPoint("LEFT", T.Padding, 0)
-  footer.label:SetText("Previous Segment")
-  -- death counter, lower right, only when > 0: skull icon + count
+  -- build number, small and subtle, right-aligned
+  footer.build = T.Text(footer, 9)
+  footer.build:SetPoint("RIGHT", -T.Padding, 0)
+  footer.build:SetJustifyH("RIGHT")
+  T.SetColour(footer.build, T.Colour.TextDim, 0.6)
+  footer.build:SetText(U.BuildLabel())
+  -- centred status: hardcore runs say "Hardcore"; softcore runs show skull + death count
+  -- (always when Config.ShowDeathsSoftcore, otherwise only once > 0). Icon + count are centred as a pair.
+  footer.status = T.Text(footer, T.FontSize)
+  footer.status:SetPoint("CENTER", 4, 0)
+  footer.status:Hide()
   footer.deathIcon = footer:CreateTexture(nil, "ARTWORK")
   footer.deathIcon:SetSize(12, 12)
   footer.deathIcon:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_8")   -- skull raid marker
-  footer.deathIcon:SetPoint("RIGHT", -T.Padding, 0)
-  footer.deathCount = T.Text(footer, T.FontSize)
-  footer.deathCount:SetPoint("RIGHT", footer.deathIcon, "LEFT", -2, 0)
-  T.SetColour(footer.deathCount, T.Colour.Behind)
-  footer.deathIcon:Hide(); footer.deathCount:Hide()
-  footer.value = T.Text(footer, T.FontSize)
-  footer.value:SetPoint("RIGHT", -T.Padding, 0)
-  -- build number, tiny and subtle, tucked under the footer's bottom-right corner
-  footer.build = T.Text(footer, 8)
-  footer.build:SetPoint("BOTTOMRIGHT", -2, 1)
-  footer.build:SetJustifyH("RIGHT")
-  T.SetColour(footer.build, T.Colour.TextDim, 0.45)
-  footer.build:SetText(U.BuildLabel())
+  footer.deathIcon:SetPoint("RIGHT", footer.status, "LEFT", -3, 0)
+  footer.deathIcon:Hide()
   return footer
 end
 
@@ -460,18 +470,23 @@ function L.Refresh()
   frame.footer:ClearAllPoints()
   frame.footer:SetPoint("TOPLEFT", 0, y); frame.footer:SetPoint("TOPRIGHT", 0, y)
   y = y - T.FooterHeight
-  frame.footer.value:SetText(U.FormatDelta(V.PreviousSegmentDelta))
-  T.SetColour(frame.footer.value, T.DeltaColour(V.PreviousSegmentDelta))
-  -- death counter: shown only when > 0; the segment delta moves left of it
-  local deaths = ST.Milestones.DeathCount()
-  frame.footer.value:ClearAllPoints()
-  if deaths > 0 then
-    frame.footer.deathCount:SetText(tostring(deaths))
-    frame.footer.deathIcon:Show(); frame.footer.deathCount:Show()
-    frame.footer.value:SetPoint("RIGHT", frame.footer.deathCount, "LEFT", -10, 0)
+  -- footer status: "Hardcore" on hardcore runs; otherwise the death counter
+  -- (always when Config.ShowDeathsSoftcore, else only once > 0)
+  local ft = frame.footer
+  local mode = ST.Record.Current().CharacterRun_Mode or ""
+  if mode:find("hardcore", 1, true) then
+    ft.status:SetText("Hardcore")
+    T.SetColour(ft.status, T.Colour.Behind)
+    ft.status:Show(); ft.deathIcon:Hide()
   else
-    frame.footer.deathIcon:Hide(); frame.footer.deathCount:Hide()
-    frame.footer.value:SetPoint("RIGHT", -T.Padding, 0)
+    local deaths = ST.Milestones.DeathCount()
+    if deaths > 0 or cfg.ShowDeathsSoftcore ~= false then
+      ft.status:SetText(tostring(deaths))
+      T.SetColour(ft.status, deaths > 0 and T.Colour.Behind or T.Colour.TextDim)
+      ft.status:Show(); ft.deathIcon:Show()
+    else
+      ft.status:Hide(); ft.deathIcon:Hide()
+    end
   end
 
   frame:SetHeight(-y)
@@ -634,6 +649,7 @@ function L.ShowContextMenuImpl(anchor)
     { text = "Times on left", checked = cfg.TimesSide == "LEFT", func = function() cfg.TimesSide = cfg.TimesSide == "LEFT" and "RIGHT" or "LEFT"; L.Refresh() end },
     { text = "Large timer (LiveSplit style)", checked = cfg.BigTimer == true, func = function() cfg.BigTimer = not cfg.BigTimer; L.Refresh() end },
     { text = "Always show next money milestone", checked = cfg.AlwaysShowMoney == true, func = function() cfg.AlwaysShowMoney = not cfg.AlwaysShowMoney; L.Refresh() end },
+    { text = "Always show deaths (softcore)", checked = cfg.ShowDeathsSoftcore ~= false, func = function() cfg.ShowDeathsSoftcore = (cfg.ShowDeathsSoftcore == false); L.Refresh() end },
     { text = "Show Played clock", checked = cfg.Clock == "PLAYED", func = function() cfg.Clock = cfg.Clock == "PLAYED" and "ACTIVE" or "PLAYED"; ST.Compare.Invalidate(); L.Refresh() end },
   }
   -- Section 3: windows.

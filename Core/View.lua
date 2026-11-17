@@ -43,6 +43,8 @@ function V.Done(limit)
     item.Best = ST.Compare.Best(item.Key)
     -- Gold = a true record: faster than every candidate (not just the reference run).
     item.Gold = ST.Compare.IsRecord(item.Key, item.Time)
+    -- Level rows also carry the (n-1 -> n) segment delta so "am I bleeding time right now?" reads on the row itself.
+    if item.Axis == "level" then item.SegmentDelta = V.SegmentDelta(tonumber((D.ParseKey(item.Key)))) end
     out[#out + 1] = item
   end
   -- Guarantee the previous level row. It is exempt from the done-window: use the recorded
@@ -58,6 +60,7 @@ function V.Done(limit)
     if m and not m.Inferred then
       row.Time = m[field]
       row.Gold = ST.Compare.IsRecord(prevKey, row.Time)
+      row.SegmentDelta = V.SegmentDelta(level)
     else
       row.Inferred = true
     end
@@ -240,17 +243,20 @@ function V.Final()
 end
 
 -- Delta of the most recent level segment vs the best segment for that level.
-function V.PreviousSegmentDelta()
+-- Delta of the level (n-1 -> n) segment vs the comparison segment for that level, or nil when
+-- either end of our segment is inferred or the comparison has no such segment.
+function V.SegmentDelta(n)
   local rec = ST.Record.Current()
   local field = ClockField()
-  local level = UnitLevel("player")
-  local b = rec.Milestones[D.Key("level", level)]
-  local a = level > 2 and rec.Milestones[D.Key("level", level - 1)] or { [field] = 0 }
+  local b = rec.Milestones[D.Key("level", n)]
+  local a = n > 2 and rec.Milestones[D.Key("level", n - 1)] or { [field] = 0 }
   if not b or b.Inferred or not a or a.Inferred then return nil end
-  local best = ST.Compare.BestLevelSegment(level)
+  local best = ST.Compare.BestLevelSegment(n)
   if not best then return nil end
   return (b[field] - a[field]) - best
 end
+-- Kept for callers that only want the latest one.
+function V.PreviousSegmentDelta() return V.SegmentDelta(UnitLevel("player")) end
 
 function V.Build()
   local cfg = ST.db.Config

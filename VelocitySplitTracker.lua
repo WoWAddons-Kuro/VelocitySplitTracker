@@ -14,6 +14,7 @@ local DEFAULT_CONFIG = {
   Clock = "ACTIVE",      -- "ACTIVE" | "PLAYED"
   BigTimer = false,      -- large LiveSplit-style timer with tenths; off = compact row
   AlwaysShowMoney = true, -- pin the next money milestone as the last upcoming row
+  ShowDeathsSoftcore = true, -- footer death counter always shown (even 0) on non-hardcore runs; hardcore shows "Hardcore"
   RowsDone = 4,
   RowsUpcoming = 6,
   Scale = 1,

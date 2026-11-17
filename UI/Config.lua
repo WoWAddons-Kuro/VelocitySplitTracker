@@ -44,6 +44,11 @@ function C.Create()
     function() return ST.db.Config.AlwaysShowMoney == true end,
     function(v) ST.db.Config.AlwaysShowMoney = v end)
 
+  AddCheck("Always show deaths (softcore)",
+    "Show the death counter in the footer even when it is 0. Off = only once you have died. Hardcore runs always show 'Hardcore' instead.",
+    function() return ST.db.Config.ShowDeathsSoftcore ~= false end,
+    function(v) ST.db.Config.ShowDeathsSoftcore = v end)
+
   local btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   btn:SetSize(160, 22)
   btn:SetPoint("TOPLEFT", lastWidget, "BOTTOMLEFT", 0, -16)
