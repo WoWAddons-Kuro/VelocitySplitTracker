@@ -439,7 +439,7 @@ function L.UpdateTimer(V)
       local selOpen, selClose, dimOpen, dimClose = "|cffeeeeee", "|r", "|cff999999", "|r"
       local a = (playedSelected and dimOpen or selOpen) .. "Active " .. U.FormatTime(activeWhole) .. (playedSelected and dimClose or selClose)
       local p = (playedSelected and selOpen or dimOpen) .. "Played " .. U.FormatTime(tick) .. (playedSelected and selClose or dimClose)
-      tm.secondary:SetText(a .. "   " .. p .. suffix)
+      tm.secondary:SetText(a .. "  |cff666666||r  " .. p .. suffix)
       tm.big:SetText("")
     end
   end
