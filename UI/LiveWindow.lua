@@ -511,18 +511,22 @@ function L.UpdateTimer(V)
   if tick ~= tm.lastTick or reason ~= tm.lastReason or playedSelected ~= tm.lastPlayedSelected or big ~= tm.lastBig then
     tm.lastTick, tm.lastReason, tm.lastPlayedSelected, tm.lastBig = tick, reason, playedSelected, big
     local activeWhole = math.floor(active + 0.5)   -- rounded, so it lands on the same visual tick as Played
-    local suffix = reason and ("  |cffaaaaaa(" .. reason .. ")|r") or ""
+    -- The stop reason ("idle", "paused", ...) is a state of the ACTIVE clock, so it sits directly
+    -- left of the Active label and takes the same emphasis (bright when Active is selected, dim otherwise).
+    local reasonPrefix = reason and ("(" .. reason .. ") ") or ""
     if big then
       -- big: selected clock large (tenths handled below), the other labelled underneath
-      local otherLabel = playedSelected and "Active" or "Played"
-      local otherVal = playedSelected and activeWhole or tick
-      tm.secondary:SetText(otherLabel .. " " .. U.FormatTime(otherVal) .. suffix)
+      if playedSelected then
+        tm.secondary:SetText(reasonPrefix .. "Active " .. U.FormatTime(activeWhole))
+      else
+        tm.secondary:SetText("Played " .. U.FormatTime(tick))
+      end
     else
       -- compact: "Active 1:30:51   Played 1:49:44" with the selected one bright
       local selOpen, selClose, dimOpen, dimClose = "|cffeeeeee", "|r", "|cff999999", "|r"
-      local a = (playedSelected and dimOpen or selOpen) .. "Active " .. U.FormatTime(activeWhole) .. (playedSelected and dimClose or selClose)
+      local a = (playedSelected and dimOpen or selOpen) .. reasonPrefix .. "Active " .. U.FormatTime(activeWhole) .. (playedSelected and dimClose or selClose)
       local p = (playedSelected and selOpen or dimOpen) .. "Played " .. U.FormatTime(tick) .. (playedSelected and selClose or dimClose)
-      tm.secondary:SetText(a .. "  |cff666666|||r  " .. p .. suffix)
+      tm.secondary:SetText(a .. "  |cff666666|||r  " .. p)
       tm.big:SetText("")
     end
   end
