@@ -185,7 +185,7 @@ end
 ------------------------------------------------------------------------
 function W.Create()
   if frame then return frame end
-  frame = CreateFrame("Frame", "SplitTimerDataWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+  frame = CreateFrame("Frame", "VelocityDataWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
   frame:SetSize(WIDTH, HEIGHT)
   frame:SetPoint("CENTER")
   -- Frames are visible by default; a freshly created window must start hidden or the first
@@ -201,10 +201,10 @@ function W.Create()
     frame:SetBackdropColor(0.06, 0.06, 0.06, 0.95)
     frame:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
   end
-  tinsert(UISpecialFrames, "SplitTimerDataWindow")
+  tinsert(UISpecialFrames, "VelocityDataWindow")
   local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", 2, 2)
 
-  frame.title = T.Text(frame, 16); frame.title:SetPoint("TOPLEFT", 12, -10); frame.title:SetText("SplitTimer")
+  frame.title = T.Text(frame, 16); frame.title:SetPoint("TOPLEFT", 12, -10); frame.title:SetText("Velocity")
 
   -- tab strip
   local strip = CreateFrame("Frame", nil, frame)

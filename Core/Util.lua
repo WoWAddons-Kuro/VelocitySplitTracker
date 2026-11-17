@@ -62,7 +62,7 @@ end
 
 function U.Print(msg, ...)
   if select("#", ...) > 0 then msg = string.format(msg, ...) end
-  print("|cff5ad65aSplitTimer|r: " .. msg)
+  print("|cff5ad65aVelocity|r: " .. msg)
 end
 
 -- Startup/load phase probes. ST.Probe is read by the ADDON_ACTION_FORBIDDEN handler,

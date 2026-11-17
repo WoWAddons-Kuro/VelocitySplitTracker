@@ -113,7 +113,7 @@ local frame
 function R.ShowImport(prefill)
   if not frame then
     local T = ST.Theme
-    frame = CreateFrame("Frame", "SplitTimerImportWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+    frame = CreateFrame("Frame", "VelocityImportWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
     frame:SetSize(520, 360)
     frame:SetPoint("CENTER")
     -- Above the data window (DIALOG) so it is neither interleaved with it nor loses clicks to it.
@@ -128,7 +128,7 @@ function R.ShowImport(prefill)
     end
     -- explicit background too, in case the backdrop mixin is absent on this client
     frame.bg = frame:CreateTexture(nil, "BACKGROUND"); frame.bg:SetAllPoints(); frame.bg:SetColorTexture(0.06, 0.06, 0.06, 0.97)
-    tinsert(UISpecialFrames, "SplitTimerImportWindow")
+    tinsert(UISpecialFrames, "VelocityImportWindow")
     local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton"); close:SetPoint("TOPRIGHT", 2, 2)
     local title = T.Text(frame, 16); title:SetPoint("TOPLEFT", 12, -10); title:SetText("Import reference run")
     local hint = T.Text(frame, T.FontSize - 1); hint:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4); hint:SetPoint("RIGHT", -12, 0)

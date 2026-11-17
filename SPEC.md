@@ -1,7 +1,7 @@
 # SplitTimer — specification
 
 LiveSplit-style milestone tracker for WoW leveling, inside the game client.
-Repo: https://github.com/WoWAddons-Kuro/SplitTimer  · Folder/TOC: `SplitTimer` · Slash: `/split` · SavedVariables: `SplitTimerDB` (account-wide).
+Repo: https://github.com/WoWAddons-Kuro/VelocitySplitTracker  · Folder/TOC: `VelocitySplitTracker` · Display name: Velocity (renamed from SplitTimer 2026-11-17; `SplitTimerDB` is migrated into `VelocitySplitTrackerDB` on first load) · Slash: `/split`, `/velocity` · Slash: `/split` · SavedVariables: `SplitTimerDB` (account-wide).
 Target client: WoW Forever (`_forever_`, interface 16001, Mainline UI code). Lua 5.1 headless tests like BTT.Kuro.
 
 ## 1. Philosophy

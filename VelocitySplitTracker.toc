@@ -1,12 +1,12 @@
 ## Interface: 16001
-## Title: SplitTimer
-## Notes: LiveSplit-style milestone timer for leveling: levels, key quests, kills, professions, riding. Compares against your best runs per start zone, class and route.
+## Title: Velocity
+## Notes: Split tracker and auto-generated leveling guide in one. Times your levels, quests, kills, professions and money against your best runs or an imported reference - on an Active clock that stops when you walk away, so real-life interruptions don't count. Reminds you when a profession can be trained and shows the next milestone of the run you are chasing.
 ## Author: Kuro
 ## Version: dev
-## SavedVariables: SplitTimerDB
+## SavedVariables: VelocitySplitTrackerDB, SplitTimerDB
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0
 ## IconTexture: Interface\Icons\Inv_helm_armor_pirateeyepatch_b_01_green
-## X-Website: https://github.com/WoWAddons-Kuro/SplitTimer
+## X-Website: https://github.com/WoWAddons-Kuro/VelocitySplitTracker
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
@@ -28,4 +28,4 @@ UI\LiveWindow.lua
 UI\History.lua
 UI\DataWindow.lua
 UI\Config.lua
-SplitTimer.lua
+VelocitySplitTracker.lua

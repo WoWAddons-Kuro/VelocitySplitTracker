@@ -9,12 +9,12 @@ local panel, categoryID
 
 function C.Create()
   if panel then return panel end
-  panel = CreateFrame("Frame", "SplitTimerConfigPanel")
-  panel.name = "SplitTimer"
+  panel = CreateFrame("Frame", "VelocityConfigPanel")
+  panel.name = "Velocity"
 
   local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
   title:SetPoint("TOPLEFT", 16, -16)
-  title:SetText("SplitTimer")
+  title:SetText("Velocity")
 
   local sub = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
   sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)

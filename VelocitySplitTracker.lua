@@ -3,7 +3,7 @@ local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^
 local U = ST.Util
 -- (load phase set on the ADDON_NAME line)
 
-_G.SplitTimer = ST
+_G.Velocity = ST
 
 local DB_VERSION = 1
 
@@ -23,8 +23,17 @@ local DEFAULT_CONFIG = {
 }
 
 local function InitDB()
-  if type(SplitTimerDB) ~= "table" then SplitTimerDB = {} end
-  local db = SplitTimerDB
+  -- One-time migration from the addon's previous name (SplitTimer): adopt the old DB if the
+  -- new one is empty. The old global is left untouched so nothing is lost if this is rolled back.
+  if type(VelocitySplitTrackerDB) ~= "table" or next(VelocitySplitTrackerDB) == nil then
+    if type(SplitTimerDB) == "table" and next(SplitTimerDB) ~= nil then
+      VelocitySplitTrackerDB = CopyTable and CopyTable(SplitTimerDB) or SplitTimerDB
+      print("|cff5ad65aVelocity|r: migrated saved data from SplitTimer")
+    else
+      VelocitySplitTrackerDB = {}
+    end
+  end
+  local db = VelocitySplitTrackerDB
   db.Version = db.Version or DB_VERSION
   db.Config = db.Config or {}
   for k, v in pairs(DEFAULT_CONFIG) do
@@ -47,7 +56,7 @@ local function SetupMinimap()
   local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
   local Icon = LibStub and LibStub("LibDBIcon-1.0", true)
   if not (LDB and Icon) then return end
-  local obj = LDB:NewDataObject("SplitTimer", {
+  local obj = LDB:NewDataObject("Velocity", {
     type = "launcher",
     icon = "Interface\\Icons\\Inv_helm_armor_pirateeyepatch_b_01_green",
     OnClick = function(_, button)
@@ -56,13 +65,13 @@ local function SetupMinimap()
       else ST.Live.Toggle() end
     end,
     OnTooltipShow = function(tt)
-      tt:AddLine("SplitTimer")
+      tt:AddLine("Velocity")
       tt:AddLine("|cffffffffLeft-click|r toggle split window", 0.8, 0.8, 0.8)
       tt:AddLine("|cffffffffRight-click|r data window (pivots / history)", 0.8, 0.8, 0.8)
       tt:AddLine("|cffffffffMiddle-click|r settings", 0.8, 0.8, 0.8)
     end,
   })
-  Icon:Register("SplitTimer", obj, ST.db.Config.Minimap)
+  Icon:Register("Velocity", obj, ST.db.Config.Minimap)
 end
 
 local function Slash(msg)
@@ -83,9 +92,9 @@ local function Slash(msg)
       local slug = rest:gsub("%s+", "_")
       ST.Record.Hit("manual:" .. slug, rest)
     end
-  elseif cmd == "pattern" then StaticPopup_Show("SPLITTIMER_NAME_PATTERN")
+  elseif cmd == "pattern" then StaticPopup_Show("VELOCITY_NAME_PATTERN")
   elseif cmd == "played" then ST.Clock.RequestPlayed()
-  elseif cmd == "wipe" then StaticPopup_Show("SPLITTIMER_WIPE_RUN")
+  elseif cmd == "wipe" then StaticPopup_Show("VELOCITY_WIPE_RUN")
   elseif cmd == "key" then U.Print("record key: %s  (name-realm: %s)", tostring(ST.Record.KeyFor_Player()), U.CharacterKey())
   elseif cmd == "import" or cmd == "ref" then ST.Reference.ShowImport()
   elseif cmd == "anyzone" then ST.db.Config.CompareAnyZone = not ST.db.Config.CompareAnyZone; ST.Compare.Invalidate(); ST.Live.Refresh(); U.Print("compare across start zones: %s", ST.db.Config.CompareAnyZone and "on" or "off")
@@ -181,13 +190,13 @@ f:SetScript("OnEvent", function(_, event, arg1, arg2)
     Stage("InitDB", InitDB)
     Stage("Slash", function()
       SLASH_SPLITTIMER1 = "/split"
-      SLASH_SPLITTIMER2 = "/splittimer"
+      SLASH_SPLITTIMER2 = "/velocity"
       SlashCmdList.SPLITTIMER = Slash
     end)
     Stage("ConfigPanel", ST.Config.Create)
     Stage("Minimap", SetupMinimap)
     Stage("Popup", function()
-      StaticPopupDialogs["SPLITTIMER_NAME_PATTERN"] = {
+      StaticPopupDialogs["VELOCITY_NAME_PATTERN"] = {
         text = "Name this run's route pattern (blank = default):",
         button1 = OKAY, button2 = CANCEL,
         hasEditBox = true, maxLetters = 40,
@@ -201,13 +210,13 @@ f:SetScript("OnEvent", function(_, event, arg1, arg2)
         EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
         timeout = 0, whileDead = true, hideOnEscape = true,
       }
-      StaticPopupDialogs["SPLITTIMER_WIPE_RUN"] = {
+      StaticPopupDialogs["VELOCITY_WIPE_RUN"] = {
         text = "Discard ALL recorded splits and clocks for this character and start a fresh record?",
         button1 = "Wipe", button2 = CANCEL,
         OnAccept = function() ST.Record.WipeCurrent(); U.Print("record wiped; fresh record started") end,
         timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
       }
-      StaticPopupDialogs["SPLITTIMER_ADD_LOCATION"] = {
+      StaticPopupDialogs["VELOCITY_ADD_LOCATION"] = {
         text = "Name this location split (blank = zone + coordinates). It triggers the first time a character of this start zone comes within 10 yards.",
         button1 = "Add", button2 = CANCEL,
         hasEditBox = true, maxLetters = 40,

@@ -139,7 +139,7 @@ function H.CreateIn(host)
   detail.btnClear:SetPoint("LEFT", detail.btnName, "RIGHT", 4, 0)
   detail.btnCopy = MakeButton(detail, "Copy as text", 100, function() if selectedKey then H.CopyAsText(selectedKey) end end)
   detail.btnCopy:SetPoint("LEFT", detail.btnClear, "RIGHT", 4, 0)
-  detail.btnDelete = MakeButton(detail, "Delete run", 90, function() if selectedKey then StaticPopup_Show("SPLITTIMER_DELETE_RUN", selectedKey, nil, selectedKey) end end)
+  detail.btnDelete = MakeButton(detail, "Delete run", 90, function() if selectedKey then StaticPopup_Show("VELOCITY_DELETE_RUN", selectedKey, nil, selectedKey) end end)
   detail.btnDelete:SetPoint("BOTTOMRIGHT", -8, 8)
   -- Import a reference run (VOD splits, another player's export)
   detail.btnImport = MakeButton(detail, "Import reference...", 130, function() ST.Reference.ShowImport() end)
@@ -179,13 +179,13 @@ function H.CreateIn(host)
   detail.copyBox:SetHeight(20); detail.copyBox:SetAutoFocus(false); detail.copyBox:Hide()
   detail.copyBox:SetScript("OnEscapePressed", function(self) self:Hide() end)
 
-  StaticPopupDialogs["SPLITTIMER_DELETE_RUN"] = {
+  StaticPopupDialogs["VELOCITY_DELETE_RUN"] = {
     text = "Delete the recorded run for %s? This cannot be undone.",
     button1 = DELETE, button2 = CANCEL,
     OnAccept = function(_, key) H.DeleteRun(key) end,
     timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
   }
-  StaticPopupDialogs["SPLITTIMER_NAME_RUN"] = {
+  StaticPopupDialogs["VELOCITY_NAME_RUN"] = {
     text = "Route pattern name for %s (blank = default):",
     button1 = OKAY, button2 = CANCEL,
     hasEditBox = true, maxLetters = 40,
@@ -347,7 +347,7 @@ end
 -- Actions
 ------------------------------------------------------------------------
 function H.NamePattern(key)
-  local popup = StaticPopup_Show("SPLITTIMER_NAME_RUN", ST.db.Characters[key].CharacterRun_Name or key, nil, key)
+  local popup = StaticPopup_Show("VELOCITY_NAME_RUN", ST.db.Characters[key].CharacterRun_Name or key, nil, key)
   if popup then popup.data = key end
 end
 

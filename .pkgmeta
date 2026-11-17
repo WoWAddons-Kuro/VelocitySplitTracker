@@ -1,4 +1,4 @@
-package-as: SplitTimer
+package-as: VelocitySplitTracker
 
 enable-nolib-creation: no
 

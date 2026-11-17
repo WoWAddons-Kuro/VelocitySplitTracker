@@ -312,7 +312,7 @@ end
 
 function L.Create()
   if frame then return frame end
-  frame = CreateFrame("Frame", "SplitTimerLiveWindow", UIParent)
+  frame = CreateFrame("Frame", "VelocityLiveWindow", UIParent)
   frame:SetSize(T.Width, 200)
   frame:SetMovable(true)
   frame:SetClampedToScreen(true)
@@ -541,7 +541,7 @@ function L.ShowPatternMenu(anchor)
     items[#items + 1] = { text = p, checked = (current == p), func = function() Cfg().ComparePattern = p; ST.Compare.Invalidate(); L.Refresh() end }
   end
   items[#items + 1] = { separator = true }
-  items[#items + 1] = { text = "Name this run's pattern...", func = function() StaticPopup_Show("SPLITTIMER_NAME_PATTERN") end }
+  items[#items + 1] = { text = "Name this run's pattern...", func = function() StaticPopup_Show("VELOCITY_NAME_PATTERN") end }
   T.ShowMenu(anchor, items)
 end
 
@@ -579,8 +579,8 @@ function L.ShowContextMenuImpl(anchor)
   local cfg = Cfg()
   -- Section 1: IMMEDIATE actions only (things that act on the here-and-now).
   local items = {
-    { title = "SplitTimer" },
-    { text = "Add location split here...", func = function() StaticPopup_Show("SPLITTIMER_ADD_LOCATION") end },
+    { title = "Velocity" },
+    { text = "Add location split here...", func = function() StaticPopup_Show("VELOCITY_ADD_LOCATION") end },
   }
   for _, e in ipairs(ST.Locations.List()) do
     local key, label = e.Key, e.Label

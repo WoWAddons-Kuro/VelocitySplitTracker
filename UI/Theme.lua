@@ -101,7 +101,7 @@ function T.ShowMenu(anchor, items)
     return
   end
   if not ST._menuFrame then
-    ST._menuFrame = CreateFrame("Frame", "SplitTimerMenuFrame", UIParent, "UIDropDownMenuTemplate")
+    ST._menuFrame = CreateFrame("Frame", "VelocityMenuFrame", UIParent, "UIDropDownMenuTemplate")
   end
   local list = {}
   for _, it in ipairs(items) do
