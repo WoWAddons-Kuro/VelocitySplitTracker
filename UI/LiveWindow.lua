@@ -433,10 +433,10 @@ function L.UpdateLock()
   lock.tex:SetTexCoord(0.2, 0.8, 0.2, 0.8)
   if locked then
     lock.tex:SetTexture("Interface\\Buttons\\LockButton-Locked-Up")
-    lock.tex:SetVertexColor(1.0, 0.82, 0.3, 1)   -- gold = locked
+    lock.tex:SetVertexColor(0.6, 0.6, 0.6, 1)    -- dim grey = locked (the usual state)
   else
     lock.tex:SetTexture("Interface\\Buttons\\LockButton-Unlocked-Up")
-    lock.tex:SetVertexColor(0.7, 0.7, 0.7, 1)    -- grey, open = unlocked
+    lock.tex:SetVertexColor(1.0, 0.82, 0.3, 1)   -- gold, open = unlocked (draws attention)
   end
-  lock:SetAlpha(lock:IsMouseOver() and 1 or (locked and 0.75 or 0.35))
+  lock:SetAlpha(lock:IsMouseOver() and 1 or (locked and 0.3 or 0.85))
 end
