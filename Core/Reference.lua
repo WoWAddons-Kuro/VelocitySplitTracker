@@ -78,10 +78,19 @@ function R.Import(spec)
   for mkey, secs in pairs(spec.Splits) do
     -- a reference time is one number; it stands for both clocks
     rec.Milestones[mkey] = { Played = secs, Active = secs, At = time(), Label = nil }
-    local axis, id = D.ParseKey(mkey)
+    local axis, id, value = D.ParseKey(mkey)
     if axis == "level" then
       rec.Milestones[mkey].Label = "Level " .. id
       if tonumber(id) > maxLevel then maxLevel = tonumber(id) end
+    elseif axis == "area" then
+      -- "Dun_Morogh/Coldridge_Pass" -> "Enter Coldridge Pass"; "Dun_Morogh/" -> "Enter Dun Morogh"
+      local zone, sub = tostring(id):match("^(.-)/(.*)$")
+      local name = (sub and sub ~= "") and sub or (zone or tostring(id))
+      rec.Milestones[mkey].Label = "Enter " .. name:gsub("_", " ")
+    elseif axis == "skill" then rec.Milestones[mkey].Label = tostring(id):gsub("_", " ") .. " " .. tostring(value)
+    elseif axis == "learn" then rec.Milestones[mkey].Label = "Learned " .. tostring(id):gsub("_", " ")
+    elseif axis == "kill" then rec.Milestones[mkey].Label = tostring(value or id):gsub("_", " ")
+    elseif axis == "gold" then rec.Milestones[mkey].Label = "Money Acquired - " .. D.FormatCopper(tonumber(id) or 0, true)
     end
     if secs > maxTime then maxTime = secs end
   end
