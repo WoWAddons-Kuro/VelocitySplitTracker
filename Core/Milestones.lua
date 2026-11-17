@@ -319,9 +319,16 @@ function M.NextGoldStep()
   return nil
 end
 
+-- Take the purse baseline now (login), so the first PLAYER_MONEY of the session is measured as
+-- a delta and can fire a split - instead of becoming the seed and swallowing the step.
+function M.SeedMoney()
+  lastMoney = GetMoney() or 0
+  M.GoldAcquired()
+end
+
 local function OnMoney()
   local now = GetMoney() or 0
-  if lastMoney == nil then lastMoney = now; M.GoldAcquired(); return end
+  if lastMoney == nil then M.SeedMoney(); return end
   local delta = now - lastMoney
   lastMoney = now
   if delta <= 0 then return end
@@ -444,6 +451,7 @@ function M.Init()
         U.InPhase("ScanQuestLog", M.ScanQuestLog)
         U.InPhase("CheckSkills", M.CheckSkills)
         U.InPhase("CheckRiding", M.CheckRiding)
+        U.InPhase("SeedMoney", M.SeedMoney)
         U.InPhase("OnZone", OnZone)
         U.PhaseEnd(o)
         if ST.Live then ST.Live.QueueRefresh() end
