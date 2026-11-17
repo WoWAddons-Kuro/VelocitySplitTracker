@@ -57,7 +57,7 @@ function R.Current()
     local _, classFile = UnitClass("player")
     rec = {
       CharacterRun_Key = key,
-      CharacterRun_Name = UnitName("player"),
+      CharacterRun_Name = U.CharacterDisplayName(),
       CharacterRun_Realm = GetRealmName(),
       CharacterRun_ClassFile = classFile,
       CharacterRun_Race = raceFile,
@@ -74,6 +74,8 @@ function R.Current()
     ST.db.Characters[key] = rec
   end
   rec.CharacterRun_Level = UnitLevel("player")
+  -- Keep the display name current (records created before the two-name fix hold only "First").
+  local display = U.CharacterDisplayName(); if display and display ~= "?" then rec.CharacterRun_Name = display end
   -- Self-heal: if the race wasn't in the table when first seen, try again each login.
   if rec.CharacterRun_StartZone == "Unknown" or not rec.CharacterRun_StartZone then
     local _, raceFile = UnitRace("player")

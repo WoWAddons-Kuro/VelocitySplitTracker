@@ -40,6 +40,15 @@ function U.CharacterKey()
   return name .. "-" .. realm
 end
 
+-- Display name including Forever's second name. UnitPVPName returns "First Last" here
+-- (the surname occupies the PvP-title slot); UnitName returns only "First".
+function U.CharacterDisplayName()
+  local first = UnitName("player") or "?"
+  local full = UnitPVPName and UnitPVPName("player") or nil
+  if full and full ~= "" and full ~= first then return full end
+  return first
+end
+
 function U.Print(msg, ...)
   if select("#", ...) > 0 then msg = string.format(msg, ...) end
   print("|cff5ad65aSplitTimer|r: " .. msg)
