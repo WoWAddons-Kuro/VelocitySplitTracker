@@ -275,8 +275,8 @@ function L.LayoutTimer(big)
     area:SetHeight(T.RowHeight)
     area.big:SetPoint("RIGHT", -T.Padding, 0)   -- unused in compact mode (text cleared)
     area.secondary:SetFont(T.Font, T.FontSize, "")
-    area.secondary:SetPoint("LEFT", T.Padding, 0)
-    area.secondary:SetJustifyH("LEFT")
+    area.secondary:SetPoint("LEFT", T.Padding, 0); area.secondary:SetPoint("RIGHT", -T.Padding, 0)
+    area.secondary:SetJustifyH("CENTER")
   end
 end
 
