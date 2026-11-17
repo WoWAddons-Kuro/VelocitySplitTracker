@@ -60,6 +60,16 @@ function U.RunDisplayName(rec)
   return (rec.CharacterRun_Name or "?") .. " " .. U.FormatFirstSeen(rec.CharacterRun_CreatedAt)
 end
 
+-- Build label for the footer. The TOC holds "@project-version@" in the repo; publish.cs stamps
+-- the installed copy with `git describe` and release.cs commits the vYYYY.MM.DD.HHMM tag, so an
+-- installed addon always reports which build it is. The raw placeholder means "running from source".
+function U.BuildLabel()
+  local get = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+  local v = get and get(ADDON_NAME, "Version") or nil
+  if not v or v == "" or v:find("@project%-version@") then return "source" end
+  return v
+end
+
 function U.Print(msg, ...)
   if select("#", ...) > 0 then msg = string.format(msg, ...) end
   print("|cff5ad65aVelocity|r: " .. msg)

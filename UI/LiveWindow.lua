@@ -307,6 +307,12 @@ local function BuildFooter(f)
   footer.deathIcon:Hide(); footer.deathCount:Hide()
   footer.value = T.Text(footer, T.FontSize)
   footer.value:SetPoint("RIGHT", -T.Padding, 0)
+  -- build number, tiny and subtle, tucked under the footer's bottom-right corner
+  footer.build = T.Text(footer, 8)
+  footer.build:SetPoint("BOTTOMRIGHT", -2, 1)
+  footer.build:SetJustifyH("RIGHT")
+  T.SetColour(footer.build, T.Colour.TextDim, 0.45)
+  footer.build:SetText(U.BuildLabel())
   return footer
 end
 
