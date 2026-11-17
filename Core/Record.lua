@@ -30,6 +30,22 @@ local function MigrateLegacyRecord(guidKey)
   end
 end
 
+-- Where the player is right now: { Map = uiMapID, X = 0..1, Y = 0..1, Zone = "name" } or nil.
+function R.WhereNow()
+  if not (C_Map and C_Map.GetBestMapForUnit) then return nil end
+  local mapID = C_Map.GetBestMapForUnit("player")
+  if not mapID then return nil end
+  local where = { Map = mapID }
+  local info = C_Map.GetMapInfo and C_Map.GetMapInfo(mapID)
+  if info then where.Zone = info.name end
+  local pos = C_Map.GetPlayerMapPosition and C_Map.GetPlayerMapPosition(mapID, "player")
+  if pos then
+    local ok, x, y = pcall(pos.GetXY, pos)
+    if ok and x then where.X, where.Y = math.floor(x * 1000 + 0.5) / 1000, math.floor(y * 1000 + 0.5) / 1000 end
+  end
+  return where
+end
+
 -- Returns (and creates on first sight) the record for the logged-in character.
 function R.Current()
   if R._current then return R._current end
@@ -85,6 +101,7 @@ function R.Hit(key, label, extra)
   local played, active = ST.Clock.Now()
   local m = { Played = played, Active = active, At = time(), Label = label }
   if inferred then m.Inferred = true end
+  if not inferred then m.Where = R.WhereNow() end
   rec.Milestones[key] = m
   local axis, id = D.ParseKey(key)
   if axis == "level" and tonumber(id) >= D.MaxLevel then

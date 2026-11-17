@@ -199,6 +199,11 @@ function M.CheckSkills()
     if (prev ~= nil and s.Rank > prev) or (prev == nil and M._skillEventPending) then
       A.Skills[s.Name] = now
     end
+    -- First time this profession shows up in the skill list = it was just learned
+    -- (or, on the baseline scan, learned before the addon saw it -> inferred).
+    if prev == nil then
+      ST.Record.Hit(D.Key("learn", s.Name), "Learned " .. s.Name, { Inferred = baseline })
+    end
     A.SkillRanks[s.Name] = s.Rank
     for n = step, s.Rank - (s.Rank % step), step do
       -- Only the step reached by THIS gain is a real split; anything older is inferred.

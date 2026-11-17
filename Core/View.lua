@@ -119,6 +119,26 @@ function V.Upcoming(limit)
     end
   end
 
+  -- Professions not yet learned: no progress metric, so the row appears once the current clock
+  -- reaches Attention_TimeNearPct of the comparison run's first-learn time. Needs comparison data.
+  do
+    local known = {}
+    for _, s in ipairs(ST.Milestones.Skills()) do known[s.Name] = true end
+    local playedNow, activeNow = ST.Clock.Now()
+    local nowClock = (cfg.Clock == "PLAYED") and playedNow or activeNow
+    local timeNear = cfg.Attention_TimeNearPct or D.Attention_TimeNearPct
+    for name in pairs(D.TrackedSkills) do
+      local key = D.Key("learn", name)
+      if not known[name] and not rec.Milestones[key] then
+        local best = ST.Compare.Best(key)
+        if best and nowClock >= best * timeNear then
+          out[#out + 1] = { Key = key, Axis = "learn", Icon = D.SkillIcon[name], Label = "Learn " .. name, Best = best,
+            Progress = math.min(1, nowClock / best) }
+        end
+      end
+    end
+  end
+
   -- Gold acquired: same attention rules (recent progress 180 s, >= 90 % sticky).
   do
     local nextStep = ST.Milestones.NextGoldStep()

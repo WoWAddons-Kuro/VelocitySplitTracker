@@ -36,6 +36,9 @@ D.SkillCeiling = 300         -- absolute max a profession can reach on this clie
 D.Attention_NearPct = 0.90          -- at/over this fraction of the goal the row stays until completed
 D.Attention_RecentSeconds = 180     -- any progress keeps the row shown this long
 D.Attention_DoneSeconds = 45        -- a completed split stays in the done list this long
+-- Time-based near rule for milestones without a progress metric (first-learn of a profession):
+-- show the row once the current clock is at/over this fraction of the comparison run's time.
+D.Attention_TimeNearPct = 0.80
 D.SkillNearPct, D.SkillActiveSeconds = D.Attention_NearPct, D.Attention_RecentSeconds  -- legacy names
 
 -- Gold acquired (cumulative copper from loot/vendor; mail and trade excluded), exponential steps.
@@ -78,6 +81,7 @@ D.AxisIcon = {
   kill  = "Interface\\Icons\\Ability_DualWield",
   skill = nil,          -- resolved per skill via SkillIcon
   gold  = "Interface\\Icons\\INV_Misc_Coin_02",
+  learn = nil,          -- resolved per skill via SkillIcon
   riding = nil, mounted = nil, zone = nil, manual = nil,
 }
 
