@@ -185,26 +185,6 @@ function H.CreateIn(host)
     OnAccept = function(_, key) H.DeleteRun(key) end,
     timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
   }
-  StaticPopupDialogs["VELOCITY_NAME_RUN"] = {
-    text = "Route pattern name for %s (blank = default):",
-    button1 = OKAY, button2 = CANCEL,
-    hasEditBox = true, maxLetters = 40,
-    -- The run key travels as popup.data; read it from self (the parameter is nil here).
-    OnShow = function(self)
-      local rec = self.data and ST.db.Characters[self.data]
-      self.editBox:SetText(rec and rec.CharacterRun_Pattern or ""); self.editBox:HighlightText()
-    end,
-    OnAccept = function(self)
-      if self.data then H.SetPattern(self.data, self.editBox:GetText()) end
-    end,
-    EditBoxOnEnterPressed = function(self)
-      local popup = self:GetParent()
-      if popup.data then H.SetPattern(popup.data, self:GetText()) end
-      popup:Hide()
-    end,
-    EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
-    timeout = 0, whileDead = true, hideOnEscape = true,
-  }
   return frame
 end
 
@@ -358,12 +338,68 @@ end
 ------------------------------------------------------------------------
 function H.NamePattern(key)
   local rec = ST.db.Characters[key]; if not rec then return end
-  local popup = StaticPopup_Show("VELOCITY_NAME_RUN", rec.CharacterRun_Name or key, nil, key)
-  if popup then
-    popup.data = key
-    -- OnShow fires before .data is assigned on this client; prefill here as well.
-    popup.editBox:SetText(rec.CharacterRun_Pattern or ""); popup.editBox:HighlightText(); popup.editBox:SetFocus()
+  local f = H.NamePatternDialog()
+  f.runKey = key
+  local v = f.facts
+  v[1]:SetText(U.RunDisplayName(rec) .. (rec.CharacterRun_Reference and "  |cff66aaff(ref)|r" or ""))
+  v[2]:SetText(rec.CharacterRun_StartZone or "?")
+  v[3]:SetText(ST.Compare.ClassLabel(rec.CharacterRun_ClassFile))
+  v[4]:SetText(tostring(rec.CharacterRun_Level or "?"))
+  v[5]:SetText(rec.CharacterRun_Pattern or ("|cff777777" .. ST.Data.DefaultPattern .. "|r"))
+  f.edit:SetText(rec.CharacterRun_Pattern or "")
+  f:Show()
+  f.edit:SetFocus(); f.edit:HighlightText()
+end
+
+-- Our own name-pattern dialog. StaticPopupDialogs did not deliver `data` to OnShow/OnAccept on
+-- this client (prefill and Okay both failed), so this is a plain frame we control end to end.
+-- Layout: a block of labelled facts about the run, the edit box, then Okay / Cancel.
+local nameDialog
+function H.NamePatternDialog()
+  if nameDialog then return nameDialog end
+  local f = CreateFrame("Frame", "VelocityNamePatternDialog", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
+  f:SetSize(380, 222)
+  f:SetPoint("CENTER", 0, 120)
+  f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetToplevel(true)
+  f:EnableMouse(true); f:SetMovable(true); f:RegisterForDrag("LeftButton")
+  f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
+  if f.SetBackdrop then
+    f:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
+    f:SetBackdropColor(0.06, 0.06, 0.06, 0.97); f:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
   end
+  f.bg = f:CreateTexture(nil, "BACKGROUND"); f.bg:SetAllPoints(); f.bg:SetColorTexture(0.06, 0.06, 0.06, 0.97)
+  tinsert(UISpecialFrames, "VelocityNamePatternDialog")
+  f:Hide()
+
+  f.title = T.Text(f, 15); f.title:SetPoint("TOPLEFT", 12, -10); f.title:SetText("Route pattern")
+
+  -- fact block: dim label column + value column
+  local FACTS = { "Character", "Start zone", "Class", "Level", "Current pattern" }
+  f.facts = {}
+  local y = -34
+  for i, label in ipairs(FACTS) do
+    local l = T.Text(f, T.FontSize - 1); l:SetPoint("TOPLEFT", 14, y); l:SetWidth(100); l:SetJustifyH("LEFT"); T.SetColour(l, T.Colour.TextDim); l:SetText(label)
+    local val = T.Text(f, T.FontSize - 1); val:SetPoint("TOPLEFT", 118, y); val:SetPoint("RIGHT", -14, 0); val:SetJustifyH("LEFT"); val:SetWordWrap(false)
+    f.facts[i] = val
+    y = y - 17
+  end
+
+  local prompt = T.Text(f, T.FontSize - 1); prompt:SetPoint("TOPLEFT", 14, y - 6); T.SetColour(prompt, T.Colour.TextDim)
+  prompt:SetText("New pattern name  (blank = " .. ST.Data.DefaultPattern .. ")")
+  f.edit = CreateFrame("EditBox", nil, f, "InputBoxTemplate")
+  f.edit:SetPoint("TOPLEFT", 18, y - 22); f.edit:SetPoint("RIGHT", -14, 0); f.edit:SetHeight(22)
+  f.edit:SetAutoFocus(false); f.edit:SetMaxLetters(40)
+
+  local function Accept()
+    if f.runKey then H.SetPattern(f.runKey, f.edit:GetText()) end
+    f:Hide()
+  end
+  f.edit:SetScript("OnEnterPressed", Accept)
+  f.edit:SetScript("OnEscapePressed", function() f:Hide() end)
+  f.ok = MakeButton(f, OKAY or "Okay", 100, Accept); f.ok:SetPoint("BOTTOMRIGHT", -118, 10)
+  f.cancel = MakeButton(f, CANCEL or "Cancel", 100, function() f:Hide() end); f.cancel:SetPoint("BOTTOMRIGHT", -12, 10)
+  nameDialog = f
+  return f
 end
 
 function H.SetPattern(key, name)
