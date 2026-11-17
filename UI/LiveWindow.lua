@@ -547,6 +547,8 @@ function L.ShowContextMenuImpl(anchor)
     local key, label = e.Key, e.Label
     items[#items + 1] = { text = "Remove location split: " .. label, func = function() ST.Locations.Remove(key); L.Refresh() end }
   end
+  items[#items + 1] = { separator = true }
+  items[#items + 1] = { title = "Clock" }
   items[#items + 1] = { text = ST.Clock.IsPaused() and "Resume active clock" or "Pause active clock", func = function() ST.Clock.SetPaused(not ST.Clock.IsPaused()) end }
   -- Section 2: settings / toggles.
   local settings = {
