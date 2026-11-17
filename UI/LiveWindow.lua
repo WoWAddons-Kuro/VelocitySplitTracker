@@ -377,8 +377,8 @@ function L.Refresh()
   frame.sepUpcoming:SetPoint("TOPLEFT", 0, y); frame.sepUpcoming:SetPoint("TOPRIGHT", 0, y)
   y = y - 1
 
-  local maxUp = cfg.RowsUpcoming or 4
-  for i = 1, math.min(maxUp, #V.Upcoming) do
+  -- The view owns the row cap (variable rows only; professions / money are never capped).
+  for i = 1, #V.Upcoming do
     local row = AcquireRow(n + 1)
     FillUpcomingRow(row, V.Upcoming[i], width)
     Place(row)
