@@ -39,7 +39,7 @@ SplitTimerDB = {
   Version = 1,
   Config = { ... },                      -- global UI/behaviour options (section 7)
   Characters = {                         -- keyed by "Name-Realm"
-    ["Kuro-Forever"] = {                 -- a CharacterRun record
+    ["Player-1234-00ABCDEF"] = {         -- a CharacterRun record, keyed by UnitGUID("player") (Name-Realm collided: Forever characters share first names)
       CharacterRun_Key        = "Kuro-Forever",
       CharacterRun_Name       = "Kuro", CharacterRun_Realm = "Forever",
       CharacterRun_ClassFile  = "HUNTER",     -- select(2, UnitClass)
@@ -84,10 +84,13 @@ SplitTimerDB = {
 | Riding | `riding:<rank>` 1..4 | `SPELLS_CHANGED` / `LEARNED_SPELL_IN_SKILL_LINE` (`LEARNED_SPELL_IN_TAB` does not exist here) + `IsSpellKnown` for riding spell IDs (33388, 33391, 34090, 34091 — verify) | `Apprentice Riding` |
 | Mounted | `mounted:1` | first time `IsMounted()` is true (poll 1 s / `UNIT_AURA` player). Mount *purchase* is not reliably observable in Classic-style bags, so "first mounted" is the milestone | `First Mount` |
 | Profession | `skill:<skillName>:<n>` n ∈ 50,100,150,…,300 (configurable step) | `SKILL_LINES_CHANGED` / `CHAT_MSG_SKILL` → `GetProfessions/GetProfessionInfo` (works here) merged with `GetSkillLineInfo` if present, plus the chat line `SKILL_RANK_UP` parsed directly. Steps already passed at login are back-filled as `Inferred`. | `Skinning 150` |
+| Profession learned | `learn:<skillName>` | first time a tracked profession appears in the skill list after a skill event (baseline scan → `Inferred`). Upcoming row "Learn X" shows once the clock reaches `Attention_TimeNearPct` (0.80) of the comparison run's time. | `Learned Skinning` |
+| Money acquired | `gold:<copper>` at 100 / 1 000 / 10 000 / 100 000 / 1 000 000 / 10 000 000 (1s 10s 1g 10g 100g 1000g) | `PLAYER_MONEY` positive deltas summed into `GoldAcquired_Copper` (skipped while mail/trade window open). Existing characters seed from purse, passed steps `Inferred`. | `Money Acquired - 10s` |
 | Manual | `manual:<slug>` | `/split hit <name>` or click **Split** button | user text |
 
 - A milestone is recorded **once** (first time). Re-triggering is ignored.
-- Times recorded = both clocks at the moment of the event.
+- A real hit **replaces** an `Inferred` placeholder; real never overwrites real; inferred never overwrites anything.
+- Times recorded = both clocks at the moment of the event, plus `Where = { Map, X, Y, Zone }` for real hits.
 
 ## 5. Comparison
 
