@@ -10,6 +10,8 @@ records every leveling run in the background and projects the shape of your refe
 onto a compact HUD, so you can judge your pace and decide on the fly whether to push, grind,
 or pivot.
 
+![Velocity split window](Assets/Screenshots/Velocity_Screenshot_MainPanel.jpg)
+
 Target client: WoW Forever (`_forever_`, interface 16001, Mainline UI code).
 Folder / TOC: `VelocitySplitTracker`. SavedVariables: `VelocitySplitTrackerDB`
 (data from the earlier `SplitTimer` name is migrated automatically on first load).
@@ -69,5 +71,15 @@ Not a quest guide. It will not tell you where to go next or draw waypoint arrows
 you how your pace compares to the run you chose to race, and leaves the route to you. Not
 a world-first tool either: those runs need a never-leave-the-chair discipline that no idle
 detection replaces. This is for the other 99 % of leveling.
+
+## Screenshots
+
+**Compare table** - best time per level, by start zone and class, with your own column in green and the best cell gold:
+
+![Compare table](Assets/Screenshots/Velocity_Screenshot_CompareTable.jpg)
+
+**History** - every recorded run with first-seen stamp, PB star and pattern; the selected run's splits below with Active / Played / segment / kills per minute / XP per minute / where:
+
+![History panel](Assets/Screenshots/Velocity_Screenshot_HistoryPanel.jpg)
 
 See `SPEC.md` for the design, `CHANGELOG.md` for what has shipped.

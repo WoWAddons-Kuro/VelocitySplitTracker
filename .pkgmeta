@@ -11,6 +11,7 @@ ignore:
   - Assets/VelocitySplitTracker_AppIcon.png
   - Assets/VelocitySplitTracker_AppIcon.jpg
   - Assets/VelocitySplitTracker_Icon_256.png
+  - Assets/Screenshots
   - .github
   - .gitignore
   - .pkgmeta
