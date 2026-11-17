@@ -243,19 +243,26 @@ local function QueueQuestScan()
 end
 
 function M.Init()
-  frame:RegisterEvent("PLAYER_LEVEL_UP")
-  frame:RegisterEvent("QUEST_TURNED_IN")
-  frame:RegisterEvent("QUEST_ACCEPTED")
-  frame:RegisterEvent("QUEST_LOG_UPDATE")
-  frame:RegisterEvent("UNIT_QUEST_LOG_CHANGED")
-  frame:RegisterEvent("SKILL_LINES_CHANGED")
-  frame:RegisterEvent("CHAT_MSG_SKILL")
-  frame:RegisterEvent("SPELLS_CHANGED")
-  frame:RegisterEvent("LEARNED_SPELL_IN_TAB")
-  frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-  frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-  frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-  frame:RegisterEvent("PLAYER_XP_UPDATE")
+  -- Event names differ between client flavours; an unknown one must never abort Init
+  -- (it would leave the OnEvent handler unset and silently kill all tracking).
+  local function Reg(event)
+    local ok = pcall(frame.RegisterEvent, frame, event)
+    if not ok then U.Print("|cffaaaaaa(event %s not on this client; skipped)|r", event) end
+  end
+  Reg("PLAYER_LEVEL_UP")
+  Reg("QUEST_TURNED_IN")
+  Reg("QUEST_ACCEPTED")
+  Reg("QUEST_LOG_UPDATE")
+  Reg("UNIT_QUEST_LOG_CHANGED")
+  Reg("SKILL_LINES_CHANGED")
+  Reg("CHAT_MSG_SKILL")
+  Reg("SPELLS_CHANGED")
+  Reg("LEARNED_SPELL_IN_TAB")       -- Classic-era clients only
+  Reg("LEARNED_SPELL_IN_SKILL_LINE") -- its Mainline successor
+  Reg("COMBAT_LOG_EVENT_UNFILTERED")
+  Reg("ZONE_CHANGED_NEW_AREA")
+  Reg("PLAYER_ENTERING_WORLD")
+  Reg("PLAYER_XP_UPDATE")
   -- First-mount detection: a slow poll instead of UNIT_AURA (which fires constantly in combat).
   C_Timer.NewTicker(3, function()
     if IsMounted and IsMounted() and not ST.Record.Has("mounted:1") then ST.Record.Hit("mounted:1", "First Mount") end
