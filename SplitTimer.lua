@@ -46,7 +46,7 @@ local function SetupMinimap()
   if not (LDB and Icon) then return end
   local obj = LDB:NewDataObject("SplitTimer", {
     type = "launcher",
-    icon = "Interface\\Icons\\INV_Misc_PocketWatch_01",
+    icon = "Interface\\Icons\\Inv_helm_armor_pirateeyepatch_b_01_green",
     OnClick = function(_, button)
       if button == "RightButton" then ST.History.Toggle()
       elseif button == "MiddleButton" then ST.Config.Open()
