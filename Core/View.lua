@@ -153,9 +153,9 @@ function V.Upcoming(limit)
       local near = frac >= (cfg.Attention_MoneyNearPct or D.Attention_MoneyNearPct)
       if cfg.AlwaysShowMoney or near then
         local key = D.Key("gold", nextStep)
-        -- "Money Acquired - 10s"; the bar shows how close, the short current amount sits after it.
-        moneyRow = { Key = key, Axis = "gold", Icon = D.GoldIcon, Label = "Money Acquired - " .. D.FormatCopper(nextStep, true), Best = ST.Compare.Best(key),
-          Progress = frac, ProgressText = D.FormatCopper(total, true),
+        -- "Money Acquired - 8s of 10s"
+        moneyRow = { Key = key, Axis = "gold", Icon = D.GoldIcon, Label = "Money Acquired - " .. D.FormatCopper(total, true) .. " of " .. D.FormatCopper(nextStep, true), Best = ST.Compare.Best(key),
+          Progress = frac,
           Sticky = true, LastProgress = ST.Milestones.Attention().Gold }
         -- Not pinned: compete for a slot like any other row.
         if not cfg.AlwaysShowMoney then out[#out + 1] = moneyRow; moneyRow = nil end
