@@ -157,7 +157,7 @@ local function BuildTitle(f)
     b:SetScript("OnEnter", function() T.SetColour(b.text, T.Colour.Text) end)
     b:SetScript("OnLeave", function() T.SetColour(b.text, T.Colour.TextDim) end)
     b:SetScript("OnClick", function() onClick(b) end)
-    b.SetLabel = function(self, s) self.text:SetText(s .. " |cff777777\226\150\190|r"); self:SetWidth(self.text:GetStringWidth() + 2) end
+    b.SetLabel = function(self, s) self.text:SetText(s .. " |cff777777v|r"); self:SetWidth(self.text:GetStringWidth() + 2) end
     return b
   end
   local function Dash()
