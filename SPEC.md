@@ -6,6 +6,33 @@ Target client: WoW Forever (`_forever_`, interface 16001, Mainline UI code). Lua
 
 ## 1. Philosophy
 
+**What this is for** (the author, 2026-11-17, lightly edited):
+
+> I have 12k hours of WoW. I don't need RestedXP telling me to wipe my nose. I want to know
+> the rough pacing of my best run, to *decide* whether I'm going to follow it or deviate, and
+> how I'm doing against it.
+>
+> This is mostly **not** for world-first speedruns - that needs a do-not-leave-the-chair
+> mentality, and even with Active tracking you leave the mental zone. This is a way to
+> **(a)** automatically record the rough shape of a run just because you did it, without
+> editing any files; **(b)** import/export good runs to share; **(c)** benchmark against
+> whatever you want. A human paladin PvE death-skip run replicating Vitochie's record? A
+> Skyborne mage hardcore run that you still benchmark against Vitochie's paladin because you
+> are insane? *You* choose.
+
+Design consequences, so they are not re-argued:
+
+- **The tool informs a decision; it does not make it.** It should never silently switch what
+  you are racing in a way you did not ask for. Automatic route detection (5.8) may *rank* and
+  *suggest*; the reference you see is the one you chose, or `Auto select` with its rule stated.
+- **Deviation is a first-class outcome**, not an error. When the player leaves the reference's
+  route the window should show that plainly (missed anchors, a fork), not pretend.
+- **The far horizon matters as much as the next row.** "Kharanos in 12 min, Ironforge in 22,
+  Stormwind in 27 - because this is the Elwynn-transfer route" is the pacing a 12k-hour
+  player actually wants; the next-level XP bar is table stakes.
+- **Zero authoring.** Every run is recorded; curation (naming a pattern, importing, pinning a
+  reference) is optional and after the fact.
+
 - **Record everything, curate later.** Every character automatically records every milestone it reaches, against two clocks. Nothing is ever lost because the player forgot to "start a run".
 - **Milestones are benchmarks, not a linear list.** A level-30 character may still not have done Vagash. So the UI shows the *next milestone on each axis*, not "the next row".
 - **Comparison is derived from history**, keyed by `(StartZone, Class|ANY, RunPattern|default)`. A run becomes a named "run pattern" when the player names it in the History window. Personal Best is computed, never hand-set.
@@ -191,6 +218,51 @@ The title dropdowns are **filters that narrow the list of runs offered** as a re
 ### 5.7 Open questions
 - Should choosing a reference also snap the filters to that run's zone/class? Proposed **no**: filters narrow the list, the `vs` line names the pick; keeping them independent lets you pick a Dun Morogh reference while browsing `Any zone`.
 - Context key `zone|class` vs per-character GUID: proposed `zone|class` so rerolls inherit.
+
+### 5.8 Route horizon and route-aware Auto (roadmap)
+
+Today's `Auto` (5.1.1) is **route-blind**: it picks by extent and end time and never notices
+that the player walked east to Loch Modan while the reference went to the Tram. Fixing that
+is staged so each step is useful on its own and tunable against real data; the full scorer
+comes last because with a handful of runs its weights cannot be tuned honestly.
+
+**Stage 0 - `Milestone.CompareRunKey`.** `Record.Hit` stores which run was the reference when
+a split was hit; done-row deltas are computed against *that* run forever. Prerequisite for any
+hand-off or hot-swap: history must never recolour.
+
+**Stage 1 - Route horizon row(s).** A `Horizon` block under the upcoming rows: the reference
+run's next **N anchors** (zone/subzone entries, named kills, first-learns) with their times,
+not just the nearest one:
+```
+   > Kharanos 12:40   > Ironforge 22:00   > Stormwind 27:30     (Elwynn-transfer route)
+```
+Pure display over `Where`/area milestones already recorded. `Config.Horizon_Anchors` (3).
+
+**Stage 2 - Missed-anchor eligibility.** An `anchor` of run R = an area entry / named kill R
+hit at level `L_a`. If the player is past `L_a + 0.5` levels and has not hit it, it is
+*missed*. A run with `>= Config.Auto_MaxMissedAnchors` (2) missed anchors is **ineligible** for
+`Auto` (it stays pinnable). This alone fixes the Loch-Modan-vs-Tram case with one threshold
+instead of six weights. Hand-off is announced in chat as today; hysteresis = the threshold
+itself (anchors are discrete, so there is no flicker).
+
+**Stage 3 - Fork ahead.** When the top two eligible runs agree on anchors hit so far but their
+next anchors differ, show the alternate's horizon as a dimmed second line:
+```
+   > Ironforge 22:00   > Stormwind 27:30
+   alt: > Vagash 26:00   > Loch Modan 31:00
+```
+This surfaces the decision *before* the fork (e.g. standing in Kharanos at level 6) instead
+of guessing after it. Display only; nothing switches until Stage 2's rule fires.
+
+**Stage 4 - Affinity scorer (only with enough runs).** Per candidate, on each milestone or a
+15 s tick: `S = w_pace·PaceRank + w_match·Σ γ^k·Match(recent_k) - w_miss·Σ Age(missed) -
+w_dist·Dist(pos, interp(R, level+xp%))`, with a two-check hysteresis margin before the HUD
+swaps. Spatial interpolation uses `Where` on level milestones (~1 fix per level - coarse; a
+tiebreaker, not a primary). Weights are tuned against logged divergences from Stages 1-3,
+not guessed. **Not before the candidate pool for a zone is in the tens of runs.**
+
+Invariant across all stages (from §1): the user can always see *which* run is the reference
+and *why* (`vs auto: X` / `vs X`), and any automatic change is announced, never silent.
 
 ## 6. Live window (LiveSplit clone)
 
