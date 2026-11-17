@@ -70,6 +70,12 @@ local function Slash(msg)
   elseif cmd == "config" or cmd == "settings" or cmd == "options" then ST.Config.Open()
   elseif cmd == "lock" then ST.db.Config.Locked = not ST.db.Config.Locked; U.Print("window %s", ST.db.Config.Locked and "locked" or "unlocked")
   elseif cmd == "reset" then ST.db.Config.Position = nil; ST.Live.Create(); ST.Live.RestorePosition(); U.Print("position reset")
+  elseif cmd == "icon" then
+    -- dev helper: try an icon name on the minimap button, e.g. /split icon INV_Misc_Orb_05
+    local Icon = LibStub and LibStub("LibDBIcon-1.0", true)
+    local path = "Interface\\Icons\\" .. rest
+    if Icon and Icon:GetMinimapButton("SplitTimer") then Icon:GetMinimapButton("SplitTimer").icon:SetTexture(path) end
+    U.Print("minimap icon set to %s", path)
   elseif cmd == "status" then
     local version = (C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)(ADDON_NAME, "Version")
     U.Print("version %s | character %s | clock %s | times %s", tostring(version), U.CharacterKey(), ST.db.Config.Clock, ST.db.Config.TimesSide)

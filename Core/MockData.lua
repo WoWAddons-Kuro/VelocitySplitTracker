@@ -16,13 +16,13 @@ M.ActiveRunning = true
 
 -- Icons per axis (reused by the real UI).
 M.AxisIcon = {
-  level   = "Interface\\Icons\\Achievement_Level_10",
+  level   = nil,
   quest   = "Interface\\GossipFrame\\ActiveQuestIcon",
-  kill    = "Interface\\Icons\\Ability_Rogue_Ambush",
+  kill    = "Interface\\Icons\\Ability_DualWield",
   skill   = "Interface\\Icons\\INV_Misc_Pelt_Wolf_01",
-  riding  = "Interface\\Icons\\Ability_Mount_WhiteTiger",
-  zone    = "Interface\\Icons\\INV_Misc_Map_01",
-  manual  = "Interface\\Icons\\INV_Misc_PocketWatch_02",
+  riding  = nil,
+  zone    = nil,
+  manual  = nil,
 }
 
 -- Recently hit milestones (newest last). Delta vs best; Best is the comparison time.
@@ -36,9 +36,12 @@ M.Done = {
 
 -- Upcoming milestones: next level always first, others only when "near".
 -- Progress is 0..1 or nil.
+-- Quests: for now the 3 most recently progressed quests (later: curated "major" quests).
 M.Upcoming = {
   { Axis = "level", Label = "Level 23",                      Best = 4633, Progress = 0.61, Current = true },
   { Axis = "quest", Label = "Cave of Ferocity",              Best = 4893, Progress = nil },
+  { Axis = "quest", Label = "The Blackwood Corrupted",       Best = 5010, Progress = nil },
+  { Axis = "quest", Label = "Buzzbox 323",                   Best = nil,  Progress = nil },
   { Axis = "skill", Label = "Skinning 150",                  Best = 5400, Progress = 134 / 150, ProgressText = "134/150" },
 }
 

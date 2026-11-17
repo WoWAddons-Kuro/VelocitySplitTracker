@@ -57,6 +57,8 @@ end
 -- Lay a row out for the configured side. Times block = [delta][time].
 local function LayoutRow(row, timesLeft)
   local p = T.Padding
+  local hasIcon = row.icon:IsShown()
+  local gap = hasIcon and 4 or 0
   row.icon:ClearAllPoints(); row.label:ClearAllPoints(); row.time:ClearAllPoints(); row.delta:ClearAllPoints()
   row.time:SetWidth(58)
   row.delta:SetWidth(48)
@@ -64,20 +66,30 @@ local function LayoutRow(row, timesLeft)
     row.delta:SetPoint("LEFT", row, "LEFT", p, 0)
     row.time:SetPoint("LEFT", row.delta, "RIGHT", 4, 0)
     row.icon:SetPoint("LEFT", row.time, "RIGHT", 6, 0)
-    row.label:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
+    if hasIcon then row.label:SetPoint("LEFT", row.icon, "RIGHT", gap, 0) else row.label:SetPoint("LEFT", row.time, "RIGHT", 6, 0) end
     row.label:SetPoint("RIGHT", row, "RIGHT", -p, 0)
   else
     row.icon:SetPoint("LEFT", row, "LEFT", p, 0)
-    row.label:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
+    if hasIcon then row.label:SetPoint("LEFT", row.icon, "RIGHT", gap, 0) else row.label:SetPoint("LEFT", row, "LEFT", p, 0) end
     row.time:SetPoint("RIGHT", row, "RIGHT", -p, 0)
     row.delta:SetPoint("RIGHT", row.time, "LEFT", -4, 0)
     row.label:SetPoint("RIGHT", row.delta, "LEFT", -4, 0)
   end
 end
 
+local function SetRowIcon(row, axis)
+  local tex = ST.Mock.AxisIcon[axis]
+  if tex then
+    row.icon:SetTexture(tex)
+    row.icon:Show()
+  else
+    row.icon:Hide()
+  end
+end
+
 local function FillDoneRow(row, item)
   local delta = item.Best and (item.Time - item.Best) or nil
-  row.icon:SetTexture(ST.Mock.AxisIcon[item.Axis])
+  SetRowIcon(row, item.Axis)
   row.label:SetText(item.Label)
   T.SetColour(row.label, T.Colour.Text)
   row.time:SetText(U.FormatTime(item.Time))
@@ -88,7 +100,7 @@ local function FillDoneRow(row, item)
 end
 
 local function FillUpcomingRow(row, item, width)
-  row.icon:SetTexture(ST.Mock.AxisIcon[item.Axis])
+  SetRowIcon(row, item.Axis)
   local label = item.Label
   if item.ProgressText then label = label .. "  |cff999999" .. item.ProgressText .. "|r" end
   row.label:SetText(label)
@@ -119,24 +131,30 @@ local function BuildTitle(f)
   title:SetScript("OnDragStop", function() f:StopMovingOrSizing(); L.SavePosition() end)
   title:SetScript("OnMouseUp", function(_, button) if button == "RightButton" then L.ShowContextMenu(title) end end)
 
-  title.icon = title:CreateTexture(nil, "ARTWORK")
-  title.icon:SetSize(24, 24)
-  title.icon:SetPoint("LEFT", T.Padding, 0)
-  title.icon:SetTexture("Interface\\Icons\\INV_Misc_PocketWatch_01")
-  title.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+  -- Subtle lock toggle in the corner
+  local lock = CreateFrame("Button", nil, title)
+  lock:SetSize(12, 12)
+  lock:SetPoint("TOPRIGHT", -3, -3)
+  lock.tex = lock:CreateTexture(nil, "ARTWORK")
+  lock.tex:SetAllPoints()
+  lock:SetAlpha(0.3)
+  lock:SetScript("OnEnter", function() lock:SetAlpha(0.9) end)
+  lock:SetScript("OnLeave", function() lock:SetAlpha(0.3) end)
+  lock:SetScript("OnClick", function() L.SetLocked(not Cfg().Locked) end)
+  title.lock = lock
 
   title.level = T.Text(title, T.TitleSize + 1)
-  title.level:SetPoint("RIGHT", -T.Padding, 0)
+  title.level:SetPoint("RIGHT", lock, "LEFT", -4, 0)
   title.level:SetJustifyH("RIGHT")
 
   title.zone = T.Text(title, T.TitleSize)
-  title.zone:SetPoint("TOPLEFT", title.icon, "TOPRIGHT", 6, -1)
+  title.zone:SetPoint("LEFT", T.Padding, 0)
 
-  -- Clickable class / pattern pieces on the second line
+  -- Clickable class / pattern pieces: "Zone - Class v - Pattern v"
   local function Clickable(onClick)
     local b = CreateFrame("Button", nil, title)
-    b:SetHeight(14)
-    b.text = T.Text(b, T.TitleSize - 1)
+    b:SetHeight(16)
+    b.text = T.Text(b, T.TitleSize)
     b.text:SetPoint("LEFT")
     T.SetColour(b.text, T.Colour.TextDim)
     b:SetScript("OnEnter", function() T.SetColour(b.text, T.Colour.Text) end)
@@ -145,11 +163,17 @@ local function BuildTitle(f)
     b.SetLabel = function(self, s) self.text:SetText(s .. " |cff777777\226\150\190|r"); self:SetWidth(self.text:GetStringWidth() + 2) end
     return b
   end
+  local function Dash()
+    local d = T.Text(title, T.TitleSize)
+    T.SetColour(d, T.Colour.TextDim)
+    d:SetText("-")
+    return d
+  end
+  title.dash0 = Dash()
+  title.dash0:SetPoint("LEFT", title.zone, "RIGHT", 4, 0)
   title.class = Clickable(function(b) L.ShowClassMenu(b) end)
-  title.class:SetPoint("BOTTOMLEFT", title.icon, "BOTTOMRIGHT", 6, 1)
-  title.dash = T.Text(title, T.TitleSize - 1)
-  T.SetColour(title.dash, T.Colour.TextDim)
-  title.dash:SetText("-")
+  title.class:SetPoint("LEFT", title.dash0, "RIGHT", 4, 0)
+  title.dash = Dash()
   title.dash:SetPoint("LEFT", title.class, "RIGHT", 4, 0)
   title.pattern = Clickable(function(b) L.ShowPatternMenu(b) end)
   title.pattern:SetPoint("LEFT", title.dash, "RIGHT", 4, 0)
@@ -238,6 +262,7 @@ function L.Refresh()
   tt.class:SetLabel(V.CompareKey.Class)
   tt.pattern:SetLabel(V.CompareKey.Pattern)
   tt.level:SetText(tostring(V.Level))
+  L.UpdateLock()
 
   -- rows
   for _, r in ipairs(frame.rows) do r:Hide() end
@@ -353,7 +378,7 @@ function L.ShowContextMenu(anchor)
   local cfg = Cfg()
   T.ShowMenu(anchor, {
     { title = "SplitTimer" },
-    { text = "Lock window", checked = cfg.Locked, func = function() cfg.Locked = not cfg.Locked end },
+    { text = "Lock window", checked = cfg.Locked, func = function() L.SetLocked(not cfg.Locked) end },
     { text = "Times on left", checked = cfg.TimesSide == "LEFT", func = function() cfg.TimesSide = cfg.TimesSide == "LEFT" and "RIGHT" or "LEFT"; L.Refresh() end },
     { text = "Show Played clock", checked = cfg.Clock == "PLAYED", func = function() cfg.Clock = cfg.Clock == "PLAYED" and "ACTIVE" or "PLAYED"; L.Refresh() end },
     { text = (ST.Mock.ActiveRunning and "Pause" or "Resume") .. " (mock)", func = function() ST.Mock.ActiveRunning = not ST.Mock.ActiveRunning; L.UpdateTimer() end },
@@ -384,4 +409,18 @@ function L.Toggle(show)
   if show == nil then show = not frame:IsShown() end
   frame:SetShown(show)
   Cfg().Shown = show
+end
+
+function L.SetLocked(locked)
+  Cfg().Locked = locked and true or false
+  L.UpdateLock()
+end
+
+function L.UpdateLock()
+  if not frame then return end
+  local locked = Cfg().Locked
+  frame.title.lock.tex:SetTexture(locked and "Interface\\Buttons\\LockButton-Locked-Up" or "Interface\\Buttons\\LockButton-Unlocked-Up")
+  -- the Blizzard lock textures have padding; zoom in a touch
+  frame.title.lock.tex:SetTexCoord(0.2, 0.8, 0.2, 0.8)
+  frame.title.lock:SetAlpha(locked and 0.6 or 0.3)
 end
