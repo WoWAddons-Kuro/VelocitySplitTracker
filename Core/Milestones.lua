@@ -288,6 +288,56 @@ end
 function M.CreatureName(id) return nameByCreatureID[id] end
 
 ------------------------------------------------------------------------
+-- Gold acquired: cumulative positive money deltas (loot, vendor, quest rewards).
+-- Deltas while the mail or trade window is open are not "acquired" and are skipped.
+------------------------------------------------------------------------
+local lastMoney = nil
+
+local function GoldStepLabel(copper) return D.FormatCopper(copper, true) .. " acquired" end
+
+-- Current cumulative total; seeds from the purse on first sight of an existing character.
+function M.GoldAcquired()
+  local rec = ST.Record.Current()
+  if rec.GoldAcquired_Copper == nil then
+    rec.GoldAcquired_Copper = GetMoney() or 0
+    -- steps already passed at seeding are back-fills, not splits
+    for _, step in ipairs(D.GoldSteps_Copper) do
+      if rec.GoldAcquired_Copper >= step then ST.Record.Hit(D.Key("gold", step), GoldStepLabel(step), { Inferred = true }) end
+    end
+  end
+  return rec.GoldAcquired_Copper
+end
+
+function M.NextGoldStep()
+  local total = M.GoldAcquired()
+  for _, step in ipairs(D.GoldSteps_Copper) do if total < step then return step end end
+  return nil
+end
+
+local function OnMoney()
+  local now = GetMoney() or 0
+  if lastMoney == nil then lastMoney = now; M.GoldAcquired(); return end
+  local delta = now - lastMoney
+  lastMoney = now
+  if delta <= 0 then return end
+  local mailOpen = MailFrame and MailFrame:IsShown()
+  local tradeOpen = TradeFrame and TradeFrame:IsShown()
+  if mailOpen or tradeOpen then return end
+  local rec = ST.Record.Current()
+  rec.GoldAcquired_Copper = M.GoldAcquired() + delta
+  M.Attention().Gold = time()
+  for _, step in ipairs(D.GoldSteps_Copper) do
+    if rec.GoldAcquired_Copper >= step then ST.Record.Hit(D.Key("gold", step), GoldStepLabel(step)) end
+  end
+  if ST.Live then ST.Live.QueueRefresh() end
+end
+
+function M.GoldRecentlyProgressed()
+  local t = M.Attention().Gold
+  return t ~= nil and (time() - t) < (ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds)
+end
+
+------------------------------------------------------------------------
 -- Zone
 ------------------------------------------------------------------------
 local function OnZone()
@@ -337,6 +387,7 @@ function M.Init()
   Reg("PLAYER_ENTERING_WORLD")
   Reg("PLAYER_XP_UPDATE")
   Reg("PLAYER_TARGET_CHANGED")
+  Reg("PLAYER_MONEY")
   -- First-mount detection: a slow poll instead of UNIT_AURA (which fires constantly in combat).
   local o = U.Phase("NewTicker")
   C_Timer.NewTicker(3, function()
@@ -380,6 +431,8 @@ function M.Init()
       if ST.Live then ST.Live.QueueRefresh() end
     elseif event == "PLAYER_TARGET_CHANGED" then
       M.NoteTarget()
+    elseif event == "PLAYER_MONEY" then
+      OnMoney()
     elseif event == "PLAYER_ENTERING_WORLD" then
       C_Timer.After(3, function()
         local o = U.Phase("Milestones.enterworld+3s")

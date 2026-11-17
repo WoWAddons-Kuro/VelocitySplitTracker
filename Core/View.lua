@@ -119,6 +119,20 @@ function V.Upcoming(limit)
     end
   end
 
+  -- Gold acquired: same attention rules (recent progress 180 s, >= 90 % sticky).
+  do
+    local nextStep = ST.Milestones.NextGoldStep()
+    if nextStep then
+      local total = ST.Milestones.GoldAcquired()
+      local frac = total / nextStep
+      if frac >= (cfg.Attention_NearPct or D.Attention_NearPct) or ST.Milestones.GoldRecentlyProgressed() then
+        local key = D.Key("gold", nextStep)
+        out[#out + 1] = { Key = key, Axis = "gold", Icon = D.GoldIcon, Label = D.FormatCopper(nextStep, true) .. " acquired", Best = ST.Compare.Best(key),
+          Progress = frac, ProgressText = D.FormatCopper(total) .. " / " .. D.FormatCopper(nextStep, true) }
+      end
+    end
+  end
+
   -- riding
   if level >= (cfg.RidingShowFromLevel or D.RidingShowFromLevel) then
     local rank = ST.Milestones.RidingRank()

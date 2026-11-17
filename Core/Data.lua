@@ -38,6 +38,21 @@ D.Attention_RecentSeconds = 180     -- any progress keeps the row shown this lon
 D.Attention_DoneSeconds = 45        -- a completed split stays in the done list this long
 D.SkillNearPct, D.SkillActiveSeconds = D.Attention_NearPct, D.Attention_RecentSeconds  -- legacy names
 
+-- Gold acquired (cumulative copper from loot/vendor; mail and trade excluded), exponential steps.
+D.GoldSteps_Copper = { 100, 1000, 10000, 100000, 1000000, 10000000 }   -- 1s 10s 1g 10g 100g 1000g
+D.GoldIcon = "Interface\\Icons\\INV_Misc_Coin_02"
+-- "1s", "10s", "1g", "10g", ... for a step; "7s 42c" style for arbitrary amounts.
+function D.FormatCopper(copper, short)
+  copper = math.floor(copper or 0)
+  local g, s, c = math.floor(copper / 10000), math.floor((copper % 10000) / 100), copper % 100
+  if short then
+    if g > 0 then return g .. "g" elseif s > 0 then return s .. "s" else return c .. "c" end
+  end
+  if g > 0 then return string.format("%dg %ds", g, s) end
+  if s > 0 then return string.format("%ds %dc", s, c) end
+  return c .. "c"
+end
+
 -- Primary + the secondaries worth tracking. Keyed by English skill line name.
 D.TrackedSkills = {
   ["Alchemy"] = true, ["Blacksmithing"] = true, ["Enchanting"] = true, ["Engineering"] = true,
@@ -62,6 +77,7 @@ D.AxisIcon = {
   quest = "Interface\\GossipFrame\\ActiveQuestIcon",
   kill  = "Interface\\Icons\\Ability_DualWield",
   skill = nil,          -- resolved per skill via SkillIcon
+  gold  = "Interface\\Icons\\INV_Misc_Coin_02",
   riding = nil, mounted = nil, zone = nil, manual = nil,
 }
 
