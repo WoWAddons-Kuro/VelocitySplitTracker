@@ -535,6 +535,8 @@ function L.ShowContextMenuImpl(anchor)
     { title = "SplitTimer" },
     { text = "Add location split here...", func = function() StaticPopup_Show("SPLITTIMER_ADD_LOCATION") end },
     { text = "Location splits...", func = function() T.ShowMenu(anchor, locItems) end },
+    { text = "Import reference run...", func = function() ST.Reference.ShowImport() end },
+    { text = "Compare across start zones", checked = cfg.CompareAnyZone == true, func = function() cfg.CompareAnyZone = not cfg.CompareAnyZone; ST.Compare.Invalidate(); L.Refresh() end },
     { separator = true },
     { text = "Lock window", checked = cfg.Locked, func = function() L.SetLocked(not cfg.Locked) end },
     { text = "Times on left", checked = cfg.TimesSide == "LEFT", func = function() cfg.TimesSide = cfg.TimesSide == "LEFT" and "RIGHT" or "LEFT"; L.Refresh() end },

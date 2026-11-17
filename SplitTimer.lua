@@ -87,6 +87,8 @@ local function Slash(msg)
   elseif cmd == "played" then ST.Clock.RequestPlayed()
   elseif cmd == "wipe" then StaticPopup_Show("SPLITTIMER_WIPE_RUN")
   elseif cmd == "key" then U.Print("record key: %s  (name-realm: %s)", tostring(ST.Record.KeyFor_Player()), U.CharacterKey())
+  elseif cmd == "import" or cmd == "ref" then ST.Reference.ShowImport()
+  elseif cmd == "anyzone" then ST.db.Config.CompareAnyZone = not ST.db.Config.CompareAnyZone; ST.Compare.Invalidate(); ST.Live.Refresh(); U.Print("compare across start zones: %s", ST.db.Config.CompareAnyZone and "on" or "off")
   elseif cmd == "mode" then
     -- game mode carried by the run record (travels with exports so others can align categories)
     local valid = { pve = true, pvp = true, ["hardcore-pve"] = true, ["hardcore-pvp"] = true }

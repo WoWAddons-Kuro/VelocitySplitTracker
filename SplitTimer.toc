@@ -22,6 +22,7 @@ Core\Milestones.lua
 Core\Locations.lua
 Core\View.lua
 Core\Pivot.lua
+Core\Reference.lua
 UI\Theme.lua
 UI\LiveWindow.lua
 UI\History.lua

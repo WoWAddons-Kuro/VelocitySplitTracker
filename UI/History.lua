@@ -228,7 +228,7 @@ function H.Refresh()
     local row = AcquireListRow(i)
     local c = row.cells
     c[1]:SetText(isPB[rec.CharacterRun_Key] and "|cfff2cc40*|r" or "")
-    c[2]:SetText((rec.CharacterRun_Key == me and "|cff5ad65a" or "") .. (rec.CharacterRun_Name or "?") .. " |cff777777" .. U.FormatFirstSeen(rec.CharacterRun_CreatedAt) .. "|r" .. (rec.CharacterRun_Frozen and " |cff8888aa(60)|r" or ""))
+    c[2]:SetText((rec.CharacterRun_Key == me and "|cff5ad65a" or "") .. (rec.CharacterRun_Name or "?") .. " |cff777777" .. U.FormatFirstSeen(rec.CharacterRun_CreatedAt) .. "|r" .. (rec.CharacterRun_Frozen and " |cff8888aa(60)|r" or "") .. (rec.CharacterRun_Reference and " |cff66aaff(ref)|r" or ""))
     c[3]:SetText(rec.CharacterRun_StartZone or "?")
     c[4]:SetText(ST.Compare.ClassLabel(rec.CharacterRun_ClassFile))
     c[5]:SetText(tostring(rec.CharacterRun_Level or "?"))

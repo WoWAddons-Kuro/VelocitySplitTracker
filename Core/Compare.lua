@@ -26,9 +26,13 @@ function C.Candidates()
   local me = meRec.CharacterRun_Key
   local includeNamedInDefault = ST.db.Config.Compare_IncludeNamedInDefault ~= false
   local sameModeOnly = ST.db.Config.Compare_AnyMode ~= true   -- a PvP run is not a benchmark for a PvE run
+  local anyZone = ST.db.Config.CompareAnyZone == true         -- e.g. a human paladin reference vs a dwarf run
   local out = {}
   for k, rec in pairs(ST.db.Characters) do
-    if k ~= me and rec.CharacterRun_StartZone == key.StartZone and (not sameModeOnly or (rec.CharacterRun_Mode or "unknown") == (meRec.CharacterRun_Mode or "unknown")) then
+    local zoneOK = anyZone or rec.CharacterRun_StartZone == key.StartZone
+    -- reference runs with unknown mode are allowed through the mode filter (their mode is often not stated)
+    local modeOK = not sameModeOnly or (rec.CharacterRun_Mode or "unknown") == (meRec.CharacterRun_Mode or "unknown") or (rec.CharacterRun_Reference and (rec.CharacterRun_Mode or "unknown") == "unknown")
+    if k ~= me and zoneOK and modeOK then
       local classOK = key.Class == "ANY" or rec.CharacterRun_ClassFile == key.Class
       local pat = rec.CharacterRun_Pattern or "default"
       local patOK = (pat == key.Pattern) or (key.Pattern == "default" and includeNamedInDefault)
