@@ -32,6 +32,14 @@ D.MaxLevel = 60
 D.RidingShowFromLevel = 38
 D.SkillStep = 50
 D.SkillCeiling = 300         -- absolute max a profession can reach on this client
+-- Skill rank at which the NEXT tier can be trained, keyed by the current tier cap.
+-- Apprentice 75 -> Journeyman at 50; Journeyman 150 -> Expert at 125; Expert 225 -> Artisan at 200.
+D.SkillTrainAt_ByCap = { [75] = 50, [150] = 125, [225] = 200 }
+function D.SkillTrainAt(cap)
+  if not cap or cap <= 0 then return nil end
+  if cap >= D.SkillCeiling then return nil end   -- nothing left to train
+  return D.SkillTrainAt_ByCap[cap] or (cap - 25)
+end
 -- Attention rules for quest / profession rows in the live window:
 D.Attention_NearPct = 0.90          -- at/over this fraction of the goal the row stays until completed
 D.Attention_RecentSeconds = 180     -- any progress keeps the row shown this long

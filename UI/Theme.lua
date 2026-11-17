@@ -30,6 +30,7 @@ T.Colour = {
   Progress    = { 0.35, 0.55, 0.95, 0.55 },
   CapLocked   = { 0.85, 0.30, 0.15, 0.28 },   -- profession goal above the trainer cap
   CapTick     = { 1.00, 0.55, 0.25, 0.90 },   -- the cap boundary itself
+  TrainTick   = { 0.35, 0.90, 0.80, 0.90 },   -- rank at which the next tier can be trained
 }
 
 function T.SetColour(obj, c, alphaOverride)

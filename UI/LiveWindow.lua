@@ -37,6 +37,9 @@ local function CreateRow(parent)
   row.capTick = T.Texture(row, T.Colour.CapTick, "ARTWORK")
   row.capTick:SetWidth(2)
   row.capTick:Hide()
+  row.trainTick = T.Texture(row, T.Colour.TrainTick, "ARTWORK")
+  row.trainTick:SetWidth(2)
+  row.trainTick:Hide()
   row.icon = row:CreateTexture(nil, "ARTWORK")
   row.icon:SetSize(T.RowHeight - 6, T.RowHeight - 6)
   row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -125,6 +128,16 @@ local function FillUpcomingRow(row, item, width)
     row.capTick:Show()
   else
     row.capBand:Hide(); row.capTick:Hide()
+  end
+  -- Train tick: medium-height line where the next tier becomes trainable.
+  if item.TrainFraction and item.TrainFraction < 1 then
+    local tx = width * item.TrainFraction
+    row.trainTick:ClearAllPoints()
+    row.trainTick:SetPoint("TOP", row, "TOPLEFT", tx, -3)
+    row.trainTick:SetPoint("BOTTOM", row, "BOTTOMLEFT", tx, 3)
+    row.trainTick:Show()
+  else
+    row.trainTick:Hide()
   end
 end
 
