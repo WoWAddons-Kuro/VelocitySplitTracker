@@ -204,7 +204,7 @@ local function BuildTitle(f)
   menuBtn:SetScript("OnClick", function() L.ShowContextMenu(menuBtn) end)
   title.menu = menuBtn
 
-  -- Clickable class / pattern pieces: "Zone - Class v - Pattern v"
+  -- Clickable label with a dim "v" dropdown marker.
   local function Clickable(onClick)
     local b = CreateFrame("Button", nil, title)
     b:SetHeight(16)
@@ -217,36 +217,49 @@ local function BuildTitle(f)
     b.SetLabel = function(self, s) self.text:SetText(s .. " |cff777777v|r"); self:SetWidth(self.text:GetStringWidth() + 2) end
     return b
   end
-  local function Dash()
-    local d = T.Text(title, T.TitleSize)
-    T.SetColour(d, T.Colour.TextDim)
-    d:SetText("-")
-    return d
-  end
-  -- Zone is a dropdown too: a specific start zone or "Any zone". Bright, since it reads as the title.
-  title.zone = Clickable(function(b) L.ShowZoneMenu(b) end)
-  title.zone:SetPoint("LEFT", menuBtn, "RIGHT", 5, 0)
-  title.zone:SetScript("OnLeave", function() T.SetColour(title.zone.text, T.Colour.Text) end)
-  T.SetColour(title.zone.text, T.Colour.Text)
-  title.dash0 = Dash()
-  title.dash0:SetPoint("LEFT", title.zone, "RIGHT", 4, 0)
-  title.class = Clickable(function(b) L.ShowClassMenu(b) end)
-  title.class:SetPoint("LEFT", title.dash0, "RIGHT", 4, 0)
-  title.dash = Dash()
-  title.dash:SetPoint("LEFT", title.class, "RIGHT", 4, 0)
-  title.pattern = Clickable(function(b) L.ShowPatternMenu(b) end)
-  title.pattern:SetPoint("LEFT", title.dash, "RIGHT", 4, 0)
-  title.dash2 = Dash()
-  title.dash2:SetPoint("LEFT", title.pattern, "RIGHT", 4, 0)
-  title.clock = Clickable(function(b) L.ShowClockMenu(b) end)
-  title.clock:SetPoint("LEFT", title.dash2, "RIGHT", 4, 0)
 
-  -- Second line: the comparison target ("vs auto: <run>" / "vs <run>" / "vs Best splits" / "no comparison")
+  -- Collapsed line: [=] vs <target> v  [>]            level [lock]
+  -- The vs label is the one setting changed mid-run, so it stays a dropdown when collapsed.
   title.vs = Clickable(function(b) L.ShowTargetMenu(b) end)
-  title.vs:SetPoint("TOPLEFT", title.zone, "BOTTOMLEFT", 0, -2)
-  title.vs.text:SetFont(T.Font, T.TitleSize - 1, "")
-  -- the first line sits in the upper half now
-  title.zone:ClearAllPoints(); title.zone:SetPoint("TOPLEFT", menuBtn, "TOPRIGHT", 5, 1)
+  title.vs:SetPoint("LEFT", menuBtn, "RIGHT", 5, 0)
+  title.vs.text:SetWordWrap(false)
+  T.SetColour(title.vs.text, T.Colour.Text)
+  title.vs:SetScript("OnLeave", function() T.SetColour(title.vs.text, T.Colour.Text) end)
+  -- Twiddle: a small right/down triangle (drawn, ARIALN has no glyphs) that expands the filter rows.
+  local tw = CreateFrame("Button", nil, title)
+  tw:SetSize(14, 14)
+  tw:SetPoint("LEFT", title.vs, "RIGHT", 2, 0)
+  tw.tex = tw:CreateTexture(nil, "ARTWORK")
+  tw.tex:SetSize(8, 8); tw.tex:SetPoint("CENTER")
+  tw.tex:SetColorTexture(0.75, 0.75, 0.75, 1)
+  if tw.tex.SetRotation then tw.tex:SetRotation(math.pi / 4) end
+  tw:SetAlpha(0.55)
+  tw:SetScript("OnEnter", function() tw:SetAlpha(1) end)
+  tw:SetScript("OnLeave", function() tw:SetAlpha(0.55) end)
+  tw:SetScript("OnClick", function() Cfg().TitleExpanded = not Cfg().TitleExpanded; L.Refresh() end)
+  title.twiddle = tw
+  -- vs label is clamped so it never pushes the twiddle/level off the row; long names ellipsize.
+  title.vs.SetLabel = function(self, s)
+    self.text:SetText(s .. " |cff777777v|r")
+    local maxW = (frame and frame:GetWidth() or T.Width) - 14 - 5 - 16 - 30 - 20 - T.Padding
+    local w = self.text:GetStringWidth() + 2
+    self:SetWidth(math.min(w, maxW)); self.text:SetWidth(math.min(w, maxW))
+  end
+
+  -- Expanded block: one row per setting, dim heading on the left, dropdown value on the right.
+  title.rows = {}
+  local menuFor = { target = L.ShowTargetMenu, zone = L.ShowZoneMenu, class = L.ShowClassMenu, pattern = L.ShowPatternMenu, clock = L.ShowClockMenu }
+  for i = 1, 5 do
+    local r = {}
+    r.label = T.Text(title, T.FontSize - 1)
+    r.label:SetPoint("TOPLEFT", T.Padding + 14, -(T.TitleHeightCollapsed + (i - 1) * T.TitleRowHeight) - 3)
+    r.label:SetWidth(78); r.label:SetJustifyH("LEFT")
+    T.SetColour(r.label, T.Colour.TextDim)
+    r.value = Clickable(function(b) local fn = menuFor[b.rowId]; if fn then fn(b) end end)
+    r.value:SetPoint("LEFT", r.label, "RIGHT", 6, 0)
+    r.value:Hide(); r.label:Hide()
+    title.rows[i] = r
+  end
 
   title.sep = T.Separator(f)
   title.sep:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, 0)
@@ -365,19 +378,37 @@ function L.Refresh()
   frame:SetScale(cfg.Scale or 1)
   frame.bg:SetAlpha(cfg.BgAlpha or 0.85)
 
-  -- title
+  -- title: drawn ONLY from V.Title (view-model seam; see the structure audit)
   local tt = frame.title
-  tt.zone:SetLabel(ST.Compare.ZoneLabel(V.CompareKey.StartZone))
-  tt.class:SetLabel(V.CompareKey.Class)
-  tt.pattern:SetLabel(V.CompareKey.Pattern)
-  tt.clock:SetLabel(cfg.Clock == "PLAYED" and "Played" or "Active")
-  tt.vs:SetLabel(ST.Compare.TargetLabel())
-  tt.level:SetText(tostring(V.Level))
+  local TT = V.Title
+  tt.vs:SetLabel(TT.VsLabel)
+  tt.level:SetText(tostring(TT.Level))
+  local titleH = T.TitleHeightCollapsed
+  if TT.Expanded then
+    titleH = T.TitleHeightCollapsed + #TT.Rows * T.TitleRowHeight + 2
+    for i, rowVM in ipairs(TT.Rows) do
+      local r = tt.rows[i]
+      r.label:SetText(rowVM.Label); r.label:Show()
+      r.value.rowId = rowVM.Id
+      r.value:SetLabel(rowVM.Value); r.value:Show()
+    end
+    for i = #TT.Rows + 1, #tt.rows do tt.rows[i].label:Hide(); tt.rows[i].value:Hide() end
+    -- down-pointing: rotate the square so a corner points down (3/4 pi puts a vertex at the bottom)
+    if tt.twiddle.tex.SetRotation then tt.twiddle.tex:SetRotation(math.pi / 4) end
+    tt.twiddle.tex:SetTexCoord(0, 1, 0, 1)
+  else
+    for _, r in ipairs(tt.rows) do r.label:Hide(); r.value:Hide() end
+    if tt.twiddle.tex.SetRotation then tt.twiddle.tex:SetRotation(math.pi / 4) end
+  end
+  -- the twiddle is a rotated square either way; expanded vs collapsed is told by the rows below it,
+  -- and by its alpha (brighter when open)
+  tt.twiddle:SetAlpha(TT.Expanded and 0.9 or 0.55)
+  tt:SetHeight(titleH)
   L.UpdateLock()
 
   -- rows
   for _, r in ipairs(frame.rows) do r:Hide() end
-  local y = -T.TitleHeight - 1
+  local y = -titleH - 1
   local n = 0
   local width = T.Width
   local function Place(row)

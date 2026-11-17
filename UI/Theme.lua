@@ -122,3 +122,6 @@ function T.ShowMenu(anchor, items)
     ToggleDropDownMenu(1, nil, ST._menuFrame, anchor, 0, 0)
   end
 end
+
+T.TitleHeightCollapsed = 24   -- one line: vs <target>  level  lock
+T.TitleRowHeight = 17         -- each expanded filter row

@@ -257,7 +257,24 @@ function V.Build()
   local rec = ST.Record.Current()
   local key = ST.Compare.Key()
   local played, active = ST.Clock.Now()
+  -- Title block: everything the title bar draws, so the renderer reads nothing else.
+  -- Collapsed: "vs <target>"  level  lock.  Expanded: one labelled row per filter/setting.
+  local title = {
+    VsLabel = ST.Compare.TargetLabel(),
+    Level = UnitLevel("player"),
+    Locked = cfg.Locked == true,
+    Expanded = cfg.TitleExpanded == true,
+    -- rows shown when expanded; Id is what the renderer passes back to Commands
+    Rows = {
+      { Id = "target",  Label = "Comparison", Value = ST.Compare.TargetLabel():gsub("^vs ", "") },
+      { Id = "zone",    Label = "Start zone", Value = ST.Compare.ZoneLabel(key.StartZone) },
+      { Id = "class",   Label = "Class",      Value = ST.Compare.ClassLabel(key.Class) },
+      { Id = "pattern", Label = "Pattern",    Value = ST.Compare.PatternLabel(key.Pattern) },
+      { Id = "clock",   Label = "Clock",      Value = cfg.Clock == "PLAYED" and "Played" or "Active" },
+    },
+  }
   return {
+    Title = title,
     CompareKey = { StartZone = key.StartZone, Class = ST.Compare.ClassLabel(key.Class), Pattern = key.Pattern },
     Level = UnitLevel("player"),
     Done = V.Done(cfg.RowsDone or 4),
