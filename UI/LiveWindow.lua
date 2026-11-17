@@ -538,37 +538,37 @@ end
 
 function L.ShowContextMenuImpl(anchor)
   local cfg = Cfg()
-  -- Location splits submenu content (manual "reach this point" splits for this start zone)
-  local locItems = {
-    { text = "Add location split here...", func = function() StaticPopup_Show("SPLITTIMER_ADD_LOCATION") end },
-  }
-  local locs = ST.Locations.List()
-  if #locs > 0 then
-    locItems[#locItems + 1] = { separator = true }
-    locItems[#locItems + 1] = { title = "Remove location split" }
-    for _, e in ipairs(locs) do
-      local key, label = e.Key, e.Label
-      locItems[#locItems + 1] = { text = label, func = function() ST.Locations.Remove(key); L.Refresh() end }
-    end
-  end
-  T.ShowMenu(anchor, {
+  -- Section 1: IMMEDIATE actions only (things that act on the here-and-now).
+  local items = {
     { title = "SplitTimer" },
     { text = "Add location split here...", func = function() StaticPopup_Show("SPLITTIMER_ADD_LOCATION") end },
-    { text = "Location splits...", func = function() T.ShowMenu(anchor, locItems) end },
-    { text = "Compare across start zones", checked = cfg.CompareAnyZone == true, func = function() cfg.CompareAnyZone = not cfg.CompareAnyZone; ST.Compare.Invalidate(); L.Refresh() end },
+  }
+  for _, e in ipairs(ST.Locations.List()) do
+    local key, label = e.Key, e.Label
+    items[#items + 1] = { text = "Remove location split: " .. label, func = function() ST.Locations.Remove(key); L.Refresh() end }
+  end
+  items[#items + 1] = { text = ST.Clock.IsPaused() and "Resume active clock" or "Pause active clock", func = function() ST.Clock.SetPaused(not ST.Clock.IsPaused()) end }
+  -- Section 2: settings / toggles.
+  local settings = {
     { separator = true },
     { text = "Lock window", checked = cfg.Locked, func = function() L.SetLocked(not cfg.Locked) end },
     { text = "Times on left", checked = cfg.TimesSide == "LEFT", func = function() cfg.TimesSide = cfg.TimesSide == "LEFT" and "RIGHT" or "LEFT"; L.Refresh() end },
     { text = "Large timer (LiveSplit style)", checked = cfg.BigTimer == true, func = function() cfg.BigTimer = not cfg.BigTimer; L.Refresh() end },
     { text = "Always show next money milestone", checked = cfg.AlwaysShowMoney == true, func = function() cfg.AlwaysShowMoney = not cfg.AlwaysShowMoney; L.Refresh() end },
     { text = "Show Played clock", checked = cfg.Clock == "PLAYED", func = function() cfg.Clock = cfg.Clock == "PLAYED" and "ACTIVE" or "PLAYED"; ST.Compare.Invalidate(); L.Refresh() end },
-    { text = ST.Clock.IsPaused() and "Resume active clock" or "Pause active clock", func = function() ST.Clock.SetPaused(not ST.Clock.IsPaused()) end },
+    { text = "Compare across start zones", checked = cfg.CompareAnyZone == true, func = function() cfg.CompareAnyZone = not cfg.CompareAnyZone; ST.Compare.Invalidate(); L.Refresh() end },
+  }
+  -- Section 3: windows.
+  local windows = {
     { separator = true },
     { text = "History", func = function() ST.History.Toggle() end },
     { text = "Import reference run...", func = function() ST.Reference.ShowImport() end },
     { text = "Settings", func = function() ST.Config.Open() end },
     { text = "Hide", func = function() L.Toggle() end },
-  })
+  }
+  for _, it in ipairs(settings) do items[#items + 1] = it end
+  for _, it in ipairs(windows) do items[#items + 1] = it end
+  T.ShowMenu(anchor, items)
 end
 
 ------------------------------------------------------------------------
