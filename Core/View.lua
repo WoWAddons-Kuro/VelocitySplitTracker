@@ -90,7 +90,8 @@ function V.Upcoming(limit)
       local recent = ST.Milestones.QuestRecentlyProgressed(questID)
       if complete or recent then
         local title = ST.Milestones.QuestTitle(questID) or ("Quest " .. questID)
-        out[#out + 1] = { Key = key, Axis = "quest", Label = title, Best = ST.Compare.Best(key), Progress = complete and 1 or nil, Sticky = complete }
+        out[#out + 1] = { Key = key, Axis = "quest", Label = title, Best = ST.Compare.Best(key), Progress = complete and 1 or nil,
+          Sticky = complete, LastProgress = ST.Milestones.Attention().Quests[questID] }
         shown = shown + 1
       end
     end
@@ -115,7 +116,8 @@ function V.Upcoming(limit)
       local capFraction = (s.Max and s.Max < nextStep) and (s.Max / nextStep) or nil
       out[#out + 1] = { Key = key, Axis = "skill", Icon = D.SkillIcon[s.Name], Label = s.Name .. " " .. nextStep, Best = ST.Compare.Best(key),
         Progress = s.Rank / nextStep, ProgressText = s.Rank .. "/" .. nextStep, Active = active,
-        CapFraction = capFraction, CapText = capFraction and tostring(s.Max) or nil }
+        CapFraction = capFraction, CapText = capFraction and tostring(s.Max) or nil,
+        Sticky = near, LastProgress = ST.Milestones.Attention().Skills[s.Name] }
     end
   end
 
@@ -133,7 +135,7 @@ function V.Upcoming(limit)
         local best = ST.Compare.Best(key)
         if best and nowClock >= best * timeNear then
           out[#out + 1] = { Key = key, Axis = "learn", Icon = D.SkillIcon[name], Label = "Learn " .. name, Best = best,
-            Progress = math.min(1, nowClock / best) }
+            Progress = math.min(1, nowClock / best), Sticky = true }
         end
       end
     end
@@ -148,7 +150,8 @@ function V.Upcoming(limit)
       if frac >= (cfg.Attention_NearPct or D.Attention_NearPct) or ST.Milestones.GoldRecentlyProgressed() then
         local key = D.Key("gold", nextStep)
         out[#out + 1] = { Key = key, Axis = "gold", Icon = D.GoldIcon, Label = D.FormatCopper(nextStep, true) .. " acquired", Best = ST.Compare.Best(key),
-          Progress = frac, ProgressText = D.FormatCopper(total) .. " / " .. D.FormatCopper(nextStep, true) }
+          Progress = frac, ProgressText = D.FormatCopper(total) .. " / " .. D.FormatCopper(nextStep, true),
+          Sticky = frac >= (cfg.Attention_NearPct or D.Attention_NearPct), LastProgress = ST.Milestones.Attention().Gold }
       end
     end
   end
@@ -163,6 +166,15 @@ function V.Upcoming(limit)
     end
   end
 
+  -- Priority: the level row stays first; everything else is ordered by most recent progress
+  -- (sticky rows count as current), so what you just did is never cut off by the row cap.
+  local levelRow = out[1] and out[1].Current and table.remove(out, 1) or nil
+  local nowWall = time()
+  for _, it in ipairs(out) do
+    if it.Sticky then it.SortKey = nowWall + 1 else it.SortKey = it.LastProgress or 0 end
+  end
+  table.sort(out, function(a, b) if a.SortKey ~= b.SortKey then return a.SortKey > b.SortKey end return a.Key < b.Key end)
+  if levelRow then table.insert(out, 1, levelRow) end
   while #out > limit do table.remove(out) end
   return out
 end
@@ -197,7 +209,7 @@ function V.Build()
     CompareKey = { StartZone = key.StartZone, Class = ST.Compare.ClassLabel(key.Class), Pattern = key.Pattern },
     Level = UnitLevel("player"),
     Done = V.Done(cfg.RowsDone or 4),
-    Upcoming = V.Upcoming(cfg.RowsUpcoming or 4),
+    Upcoming = V.Upcoming(cfg.RowsUpcoming or 6),
     Final = V.Final(),
     ActiveSeconds = active,
     PlayedSeconds = played,

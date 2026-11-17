@@ -14,7 +14,7 @@ local DEFAULT_CONFIG = {
   Clock = "ACTIVE",      -- "ACTIVE" | "PLAYED"
   BigTimer = false,      -- large LiveSplit-style timer with tenths; off = compact row
   RowsDone = 4,
-  RowsUpcoming = 4,
+  RowsUpcoming = 6,
   Scale = 1,
   BgAlpha = 0.85,
   Position = nil,
