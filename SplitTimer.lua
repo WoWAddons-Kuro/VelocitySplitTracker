@@ -84,6 +84,8 @@ local function Slash(msg)
     end
   elseif cmd == "pattern" then StaticPopup_Show("SPLITTIMER_NAME_PATTERN")
   elseif cmd == "played" then ST.Clock.RequestPlayed()
+  elseif cmd == "wipe" then StaticPopup_Show("SPLITTIMER_WIPE_RUN")
+  elseif cmd == "key" then U.Print("record key: %s  (name-realm: %s)", tostring(ST.Record.KeyFor_Player()), U.CharacterKey())
   elseif cmd == "skills" then
     -- diagnostic: which profession API path is in use and what it returns
     local api = string.format("GetSkillLineInfo=%s GetProfessions=%s", tostring(GetSkillLineInfo ~= nil), tostring(GetProfessions ~= nil))
@@ -179,6 +181,12 @@ f:SetScript("OnEvent", function(_, event, arg1, arg2)
         EditBoxOnEnterPressed = function(self) local p = self:GetParent(); p.button1:Click() end,
         EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
         timeout = 0, whileDead = true, hideOnEscape = true,
+      }
+      StaticPopupDialogs["SPLITTIMER_WIPE_RUN"] = {
+        text = "Discard ALL recorded splits and clocks for this character and start a fresh record?",
+        button1 = "Wipe", button2 = CANCEL,
+        OnAccept = function() ST.Record.WipeCurrent(); U.Print("record wiped; fresh record started") end,
+        timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
       }
     end)
   elseif event == "PLAYER_LOGIN" then

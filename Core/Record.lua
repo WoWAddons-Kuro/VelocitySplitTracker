@@ -7,10 +7,34 @@ local D = ST.Data
 ST.Record = {}
 local R = ST.Record
 
+-- Records are keyed by the character GUID (unique per character, account-wide); Name-Realm
+-- is kept for display only. Keying by Name-Realm merged two characters that share a name into
+-- one record (observed 2026-11-16: inferred levels 12-16 and a foreign /played landed in a
+-- level-11 character's record, and then blocked its real Level 10/11 splits).
+function R.KeyFor_Player()
+  local guid = UnitGUID and UnitGUID("player")
+  if guid and guid ~= "" then return guid end
+  return U.CharacterKey()   -- fallback: legacy name-realm
+end
+
+-- One-time migration: adopt a legacy Name-Realm record for this GUID if no GUID record exists.
+local function MigrateLegacyRecord(guidKey)
+  local legacyKey = U.CharacterKey()
+  local legacy = ST.db.Characters[legacyKey]
+  if legacy and legacyKey ~= guidKey and not ST.db.Characters[guidKey] then
+    legacy.CharacterRun_Key = guidKey
+    legacy.CharacterRun_LegacyKey = legacyKey
+    ST.db.Characters[guidKey] = legacy
+    ST.db.Characters[legacyKey] = nil
+    U.Print("migrated run record for %s to a per-character key", legacyKey)
+  end
+end
+
 -- Returns (and creates on first sight) the record for the logged-in character.
 function R.Current()
   if R._current then return R._current end
-  local key = U.CharacterKey()
+  local key = R.KeyFor_Player()
+  MigrateLegacyRecord(key)
   local rec = ST.db.Characters[key]
   if not rec then
     local _, raceFile = UnitRace("player")
@@ -49,10 +73,18 @@ end
 function R.Hit(key, label, extra)
   local rec = R.Current()
   if rec.CharacterRun_Frozen then return false end
-  if rec.Milestones[key] then return false end
+  -- A real hit always replaces an Inferred placeholder (back-filled at login); a real hit
+  -- never replaces another real hit; an inferred hit never touches anything existing.
+  local inferred = extra and extra.Inferred or false
+  local existing = rec.Milestones[key]
+  if existing then
+    if inferred then return false end                 -- never downgrade / duplicate
+    if not existing.Inferred then return false end    -- already a real split
+    -- fall through: upgrade the inferred placeholder to a real split
+  end
   local played, active = ST.Clock.Now()
   local m = { Played = played, Active = active, At = time(), Label = label }
-  if extra and extra.Inferred then m.Inferred = true end
+  if inferred then m.Inferred = true end
   rec.Milestones[key] = m
   local axis, id = D.ParseKey(key)
   if axis == "level" and tonumber(id) >= D.MaxLevel then
@@ -87,4 +119,17 @@ function R.ReconcileLevels()
     local key = D.Key("level", n)
     if not rec.Milestones[key] then R.Hit(key, "Level " .. n, { Inferred = true }) end
   end
+end
+
+-- Discard this character's record entirely and start a fresh one (for contaminated data).
+function R.WipeCurrent()
+  local key = R.KeyFor_Player()
+  ST.db.Characters[key] = nil
+  ST.db.Characters[U.CharacterKey()] = nil   -- any legacy-keyed leftover too
+  R._current = nil
+  local rec = R.Current()
+  ST.Compare.Invalidate()
+  if ST.Clock and ST.Clock.RequestPlayed then ST.Clock.RequestPlayed() end  -- re-seeds Active from /played
+  if ST.Live then ST.Live.QueueRefresh() end
+  return rec
 end
