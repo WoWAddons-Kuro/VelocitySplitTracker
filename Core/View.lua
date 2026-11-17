@@ -19,6 +19,7 @@ local function MilestoneLabel(key, m)
 end
 
 -- Recently hit milestones, oldest first. Inferred ones are skipped (no real time).
+-- Exception: the previous level is always present so "last level -> current level" reads.
 function V.Done(limit)
   local rec = ST.Record.Current()
   local field = ClockField()
@@ -38,6 +39,15 @@ function V.Done(limit)
     item.Best = ST.Compare.Best(item.Key)
     item.Gold = item.Best ~= nil and item.Time < item.Best
     out[#out + 1] = item
+  end
+  -- Guarantee the previous level row (no time if it was inferred / before the addon).
+  local level = UnitLevel("player")
+  local prevKey = D.Key("level", level)
+  local present = false
+  for _, it in ipairs(out) do if it.Key == prevKey then present = true break end end
+  if not present and level >= 1 then
+    table.insert(out, 1, { Key = prevKey, Axis = "level", Label = "Level " .. level, Time = nil, Best = ST.Compare.Best(prevKey), Inferred = true })
+    while #out > limit do table.remove(out, 2) end   -- keep the level row, drop the oldest other
   end
   return out
 end
@@ -97,6 +107,7 @@ function V.Upcoming(limit)
 end
 
 function V.Final()
+  if not ST.db.Config.ShowFinalRow then return nil end
   local key = D.Key("level", D.MaxLevel)
   local rec = ST.Record.Current()
   local m = rec.Milestones[key]

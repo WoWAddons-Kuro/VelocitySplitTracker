@@ -17,6 +17,7 @@ D.RaceStartZone = {
   Tauren = "Mulgore",
   BloodElf = "Eversong Woods",
   Worgen = "Gilneas", Goblin = "Kezan", Pandaren = "Wandering Isle",
+  Skyborne = "Skyborne",   -- WoW Forever custom race; TODO replace with its actual start zone name
 }
 
 -- Riding skill spell IDs by rank (classic + later clients; IsSpellKnown picks what exists).

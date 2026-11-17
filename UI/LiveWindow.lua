@@ -76,12 +76,12 @@ local function SetRowIcon(row, axis)
 end
 
 local function FillDoneRow(row, item)
-  local delta = item.Best and (item.Time - item.Best) or nil
+  local delta = (item.Best and item.Time) and (item.Time - item.Best) or nil
   SetRowIcon(row, item.Axis)
   row.label:SetText(item.Label)
-  T.SetColour(row.label, T.Colour.Text)
+  T.SetColour(row.label, item.Inferred and T.Colour.TextDim or T.Colour.Text)
   row.time:SetText(U.FormatTime(item.Time))
-  T.SetColour(row.time, T.Colour.Text)
+  T.SetColour(row.time, item.Inferred and T.Colour.TextDim or T.Colour.Text)
   row.delta:SetText(U.FormatDelta(delta))
   T.SetColour(row.delta, T.DeltaColour(delta, item.Gold))
   row.progress:Hide()
@@ -451,8 +451,10 @@ function L.RestorePosition()
 end
 
 function L.Toggle(show)
+  local existed = frame ~= nil
   L.Create()
-  if show == nil then show = not frame:IsShown() end
+  -- A toggle that had to create the frame means "show it" - never invert a freshly built frame.
+  if show == nil then show = (not existed) or (not frame:IsShown()) end
   frame:SetShown(show)
   Cfg().Shown = show
 end
