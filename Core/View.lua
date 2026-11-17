@@ -106,7 +106,11 @@ function V.Upcoming(limit)
     -- (a capped profession stays visible until the cap is lifted by training).
     local nearStep = s.Rank / nextStep >= nearPct
     local nearCap  = s.Max and s.Max > 0 and s.Rank / s.Max >= nearPct
-    local near = nearStep or nearCap
+    -- Past the train threshold (50 / 125 / 200) but the cap has not moved = not trained yet.
+    -- Keep the row up as a standing reminder until training lifts the cap.
+    local trainAt = D.SkillTrainAt(s.Max)
+    local canTrain = trainAt ~= nil and s.Rank >= trainAt
+    local near = nearStep or nearCap or canTrain
     local active = ST.Milestones.SkillIsActive(s.Name)
     -- Not gated on the current trainer cap (s.Max): the cap rises with training, the
     -- milestone is still "next 50". Only the absolute skill ceiling applies.
@@ -115,7 +119,6 @@ function V.Upcoming(limit)
       -- Part of the goal above the current trainer cap is not reachable until trained.
       local capFraction = (s.Max and s.Max < nextStep) and (s.Max / nextStep) or nil
       -- Where the next tier becomes trainable (50 / 125 / 200), if still ahead and on this bar.
-      local trainAt = D.SkillTrainAt(s.Max)
       local trainFraction = (trainAt and trainAt <= nextStep) and (trainAt / nextStep) or nil
       out[#out + 1] = { Key = key, Axis = "skill", Icon = D.SkillIcon[s.Name], Label = s.Name .. " " .. nextStep, Best = ST.Compare.Best(key),
         Progress = s.Rank / nextStep, ProgressText = s.Rank .. "/" .. nextStep, Active = active,
