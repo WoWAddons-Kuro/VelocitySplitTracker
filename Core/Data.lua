@@ -40,6 +40,18 @@ function D.SkillTrainAt(cap)
   if cap >= D.SkillCeiling then return nil end   -- nothing left to train
   return D.SkillTrainAt_ByCap[cap] or (cap - 25)
 end
+
+-- XP needed to go from level (n-1) to n, Classic 1.12 curve. Used as a fallback for XP/min on
+-- reference runs and on dings recorded before XPRequired was captured; live dings store the
+-- client's real UnitXPMax (Forever's curve may differ).
+D.XPToLevel_Classic = {
+  [2]=400,[3]=900,[4]=1400,[5]=2100,[6]=2800,[7]=3600,[8]=4500,[9]=5400,[10]=6500,
+  [11]=7600,[12]=8700,[13]=9800,[14]=11000,[15]=12300,[16]=13600,[17]=15000,[18]=16400,[19]=17800,[20]=19300,
+  [21]=20800,[22]=22400,[23]=24000,[24]=25500,[25]=27200,[26]=28900,[27]=30500,[28]=32200,[29]=33900,[30]=35700,
+  [31]=37500,[32]=39500,[33]=41400,[34]=43400,[35]=45300,[36]=47400,[37]=49400,[38]=51500,[39]=53700,[40]=55800,
+  [41]=58000,[42]=60200,[43]=62500,[44]=64700,[45]=67000,[46]=69400,[47]=71800,[48]=74200,[49]=76700,[50]=79200,
+  [51]=81700,[52]=84300,[53]=86900,[54]=89600,[55]=92300,[56]=95000,[57]=97800,[58]=100600,[59]=103500,[60]=106500,
+}
 -- Attention rules for quest / profession rows in the live window:
 D.Attention_NearPct = 0.90          -- at/over this fraction of the goal the row stays until completed
 D.Attention_RecentSeconds = 180     -- any progress keeps the row shown this long

@@ -483,7 +483,12 @@ function M.Init()
     if event == "PLAYER_LEVEL_UP" then
       local level = ...
       ST.Record.Current().CharacterRun_Level = level
-      ST.Record.Hit(D.Key("level", level), "Level " .. level)
+      local key = D.Key("level", level)
+      ST.Record.Hit(key, "Level " .. level)
+      -- XP the level just completed required (UnitXPMax of the level we were on), for XP/min.
+      local m = ST.Record.Current().Milestones[key]
+      if m and not m.Inferred and M._lastXPMax and M._lastXPMax > 0 then m.XPRequired = M._lastXPMax end
+      M._lastXPMax = nil
     elseif event == "QUEST_TURNED_IN" then
       local questID = ...
       ST.Record.Hit(D.Key("quest", questID), QuestTitle(questID) or ("Quest " .. questID))
@@ -520,6 +525,8 @@ function M.Init()
     elseif event == "PLAYER_UNGHOST" then
       OnUnghost()
     elseif event == "PLAYER_XP_UPDATE" then
+      -- remember the current level's XP cap; consumed by the next PLAYER_LEVEL_UP
+      M._lastXPMax = UnitXPMax("player")
       if ST.Live then ST.Live.QueueRefresh() end
     elseif event == "PLAYER_TARGET_CHANGED" then
       M.NoteTarget()

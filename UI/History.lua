@@ -149,7 +149,7 @@ function H.CreateIn(host)
   detail.tableHeader = CreateFrame("Frame", nil, detail)
   detail.tableHeader:SetPoint("TOPLEFT", detail.sub, "BOTTOMLEFT", 0, -8); detail.tableHeader:SetPoint("RIGHT", -8, 0)
   detail.tableHeader:SetHeight(T.RowHeight)
-  detail.cols = { { "Milestone", 300, "LEFT" }, { "Active", 72, "RIGHT" }, { "Played", 72, "RIGHT" }, { "Segment", 64, "RIGHT" }, { "Where", 180, "LEFT" } }
+  detail.cols = { { "Milestone", 240, "LEFT" }, { "Active", 66, "RIGHT" }, { "Played", 66, "RIGHT" }, { "Segment", 60, "RIGHT" }, { "Kills/m", 52, "RIGHT" }, { "XP/m", 56, "RIGHT" }, { "Where", 160, "LEFT" } }
   local hx = 0
   for _, c in ipairs(detail.cols) do
     local fs = T.Text(detail.tableHeader, T.FontSize - 1)
@@ -282,12 +282,23 @@ local function MilestoneRows(rec)
     if a.Sort ~= b.Sort then return a.Sort < b.Sort end
     return a.Key < b.Key
   end)
-  -- level segments
+  -- level segments, with kills and XP inside each segment -> kills/min and XP/min
   local prevLevelTime = 0
+  local killsSinceLevel = 0
   for _, it in ipairs(list) do
+    if it.Axis == "kill" and not it.Inferred then killsSinceLevel = killsSinceLevel + 1 end
     if it.Axis == "level" and not it.Inferred then
       it.Segment = (it[field] or 0) - prevLevelTime
+      it.Kills = killsSinceLevel
+      local lvl = tonumber((it.Key:match(":(%d+)$")))
+      local m = rec.Milestones[it.Key]
+      it.XP = (m and m.XPRequired) or (lvl and D.XPToLevel_Classic[lvl]) or nil
+      if it.Segment and it.Segment > 0 then
+        it.KillsPerMin = it.Kills / (it.Segment / 60)
+        it.XPPerMin = it.XP and (it.XP / (it.Segment / 60)) or nil
+      end
       prevLevelTime = it[field] or prevLevelTime
+      killsSinceLevel = 0
     end
   end
   return list
@@ -313,8 +324,10 @@ function H.ShowDetail(key)
     c[2]:SetText(dim and "-" or U.FormatTime(it.Active)); T.SetColour(c[2], dim and T.Colour.TextDim or T.Colour.Text)
     c[3]:SetText(dim and "-" or U.FormatTime(it.Played)); T.SetColour(c[3], dim and T.Colour.TextDim or T.Colour.Text)
     c[4]:SetText(it.Segment and U.FormatTime(it.Segment) or ""); T.SetColour(c[4], T.Colour.TextDim)
+    c[5]:SetText(it.KillsPerMin and string.format("%.1f", it.KillsPerMin) or ""); T.SetColour(c[5], T.Colour.TextDim)
+    c[6]:SetText(it.XPPerMin and string.format("%d", it.XPPerMin + 0.5) or ""); T.SetColour(c[6], T.Colour.TextDim)
     local w = it.Where
-    c[5]:SetText(w and (w.Zone or "") .. (w.X and string.format("  %.1f, %.1f", w.X * 100, w.Y * 100) or "") or ""); T.SetColour(c[5], T.Colour.TextDim)
+    c[7]:SetText(w and (w.Zone or "") .. (w.X and string.format("  %.1f, %.1f", w.X * 100, w.Y * 100) or "") or ""); T.SetColour(c[7], T.Colour.TextDim)
     row:Show()
   end
   d.content:SetHeight(math.max(10, #rows * T.RowHeight))
