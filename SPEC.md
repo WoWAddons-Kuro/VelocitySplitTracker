@@ -168,10 +168,57 @@ white = Active clock stopped (idle/paused) · green = last milestone ahead of be
 | `/split clock active|played` | select displayed/compared clock |
 | `/split status` | print version, clocks, compare key, candidate run count |
 
-### 7.1 History window
-- Left: list of all `Characters` — name, class icon, start zone, level, pattern, Active / Played time, ★ if PB for its compare key, ❄ if frozen. Sort by column. Filter by StartZone/Class/Pattern.
-- Right: detail of selected run — milestone table (name, Active, Played, delta vs selected comparison), per-level segment column.
-- Actions: **Name pattern…** (sets `CharacterRun_Pattern`), **Clear pattern**, **Delete run** (confirm), **Copy as text** (plain-text table to an edit box for sharing).
+### 7.1 Data window (tabs)
+
+One window (`/split history`, minimap right-click), four tabs along the top. Three of them are
+**fixed pivots** — the same grid widget with its axes pre-chosen, plus a picker on the left for
+the dimension being filtered. A generic "choose any axes" pivot was considered and rejected as
+more UI than it is worth; these three cover the questions actually asked.
+
+```
+[ By Level ] [ By Class ] [ By Start Zone ] [ History ]
+```
+
+**Fact table** (all three pivots read the same thing): every *real* milestone of every character,
+`(Character, StartZone, Class, Pattern, MilestoneKey) → time` on the selected clock
+(Active/Played, title-bar setting). Inferred milestones are excluded. A cell that aggregates
+several characters shows the **best** (lowest) time; cells with no fact are blank.
+
+| Tab | Left picker (filter) | Columns | Rows | Cell |
+|---|---|---|---|---|
+| **By Level** | a level split `2 … 60` (only levels present in data; default = current character's level) | Start zone | Class | best time to that level for (zone, class) |
+| **By Class** | a class (only classes present; default = current character's) | Start zone | Level split (present in data) | best time to that level for (zone, class) |
+| **By Start Zone** | a start zone (only zones present; default = current character's) | Class | Level split (present in data) | best time to that level for (zone, class) |
+
+- Picker = scrollable list of buttons on the left (`DataWindow_PickerWidth` 120 px); selected item highlighted.
+- The current character's column/row is tinted green; the best cell in each row is tinted gold.
+- Cell tooltip: which character set the time, its pattern, how many characters contributed.
+- Clicking a cell → **History** tab with that character selected.
+- Column cap 8 (start zones / classes present are naturally few); rows scroll.
+- Grid header shows "N characters" covered by the current filter, so an empty grid is explainable.
+
+**Implementation**
+- `Core/Pivot.lua` (pure Lua, headless-testable):
+  - `Pivot.Facts(clockField) → { Pivot_Fact… }`, `Pivot_Fact = { CharKey, CharName, Zone, Class, Pattern, Key, Axis, Level, Time }`
+  - `Pivot.BestGrid(facts, filterFn, colOf, rowOf) → { Cols, Rows, Cell[row][col] = { Time, CharKey, CharName, Count } }`
+  - `Pivot.LevelsPresent / ZonesPresent / ClassesPresent(facts)` for the pickers.
+- `UI/DataWindow.lua`: window shell, tab strip, one reusable `GridPanel` (picker + header + scrollable rows). The three pivot tabs are three configurations of `GridPanel`; the History tab hosts the existing `UI/History.lua` content re-parented into the window.
+
+#### Tab 4 — History
+
+The existing run list + detail panel (`UI/History.lua` as built): run list with fixed columns
+(PB ★, character, start zone, class, level, Active, Played, pattern), detail with the milestone
+table (Active / Played / level segment), actions **Name pattern…**, **Clear pattern**,
+**Copy as text**, **Delete run**.
+
+#### Shared
+- Tab strip at the top of the window; the last selected tab is remembered (`Config.DataWindow_Tab`).
+- The Active clock is force-stopped while the window is open (already true).
+- Fixed 780×480 for now; resizable later.
+
+**Open questions**
+- Pivot rows are `level:*` only in v1. Quests / professions / money as rows is a later chip on By Class / By Start Zone if wanted.
+- Pattern is not a picker in v1; cells aggregate across patterns. A pattern filter in the grid header is the natural extension.
 
 ### 7.2 Split Config panel
 - Plan editor for `(StartZone, Plan_Name)`: ordered list of milestone entries with `Label`, optional `Zone`, remove/reorder; add via: *Add level(s)*, *Add quest from log* (dropdown of current quest log), *Add current target as kill*, *Add zone (current)*, *Add profession step*, *Add manual*.
