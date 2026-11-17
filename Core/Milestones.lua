@@ -293,7 +293,7 @@ function M.Init()
       -- drop the row again once the active window lapses
       local expiry = M.NextSkillExpiry()
       if expiry then C_Timer.After(expiry - GetTime() + 0.5, function() if ST.Live then ST.Live.QueueRefresh() end end) end
-    elseif event == "SPELLS_CHANGED" or event == "LEARNED_SPELL_IN_TAB" then
+    elseif event == "SPELLS_CHANGED" or event == "LEARNED_SPELL_IN_TAB" or event == "LEARNED_SPELL_IN_SKILL_LINE" then
       M.CheckRiding()
     elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
       OnCombatLog()
