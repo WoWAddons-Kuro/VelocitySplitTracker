@@ -245,8 +245,11 @@ function L.Create()
   frame.sepFinal = T.Separator(frame)
 
   frame:SetScript("OnUpdate", function(_, elapsed) L.OnUpdate(elapsed) end)
+  -- Apply the saved visibility before anything else can fail; a refresh error must not leave it shown.
+  frame:SetShown(Cfg().Shown ~= false)
   L.RestorePosition()
-  L.Refresh()
+  local ok, err = pcall(L.Refresh)
+  if not ok then U.Print("refresh error: %s", tostring(err)) end
   return frame
 end
 

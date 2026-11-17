@@ -146,7 +146,6 @@ f:SetScript("OnEvent", function(_, event, arg1)
     ST.Record.Current()
     ST.Clock.Init()
     ST.Milestones.Init()
-    ST.Live.Create()
-    ST.Live.Toggle(ST.db.Config.Shown ~= false)
+    ST.Live.Create()   -- applies Config.Shown itself
   end
 end)
