@@ -188,6 +188,9 @@ function W.Create()
   frame = CreateFrame("Frame", "SplitTimerDataWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
   frame:SetSize(WIDTH, HEIGHT)
   frame:SetPoint("CENTER")
+  -- Frames are visible by default; a freshly created window must start hidden or the first
+  -- Toggle() sees IsShown()==true and hides it (the "click twice" bug).
+  frame:Hide()
   frame:SetMovable(true); frame:EnableMouse(true); frame:SetClampedToScreen(true)
   frame:SetFrameStrata("DIALOG")
   frame:RegisterForDrag("LeftButton")
