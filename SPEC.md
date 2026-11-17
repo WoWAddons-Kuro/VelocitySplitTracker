@@ -141,7 +141,7 @@ No border, dark translucent background (`Config.Bg_Alpha`), alternating row shad
 **Attention model** (decided 2026-11-16, replaces the earlier "near" rule):
 - Level: previous level (always, dim/no time if inferred) and `level:<cur+1>` with XP progress — always. No pinned Level 60 unless `Config.ShowFinalRow`.
 - Any **progress** on a quest objective or profession rank → that row is shown for `Attention_RecentSeconds` (**180 s**) from the last progress.
-- At/over `Attention_NearPct` (**0.90**) of the goal (quest complete-in-log counts as 100 %) → the row is **sticky** until completed.
+- At/over `Attention_NearPct` (**0.90**) of the goal (quest complete-in-log counts as 100 %); for professions the goal is **either** the next 50-step **or** the trainer cap, so a capped profession stays up until trained → the row is **sticky** until completed.
 - A **completed** split (quest, profession step, kill) appears in the done list for `Attention_DoneSeconds` (**45 s**) and then disappears. The done list is *not* "the last N milestones".
 - Profession rows draw a red band + tick for the part of the goal above the current trainer cap (`CapFraction = trainerMax / nextStep`). The next 50-step is shown even above the cap.
 - Riding/Mounted: show `riding:1` from level 38 (configurable) until obtained, `mounted:1` after riding obtained.
