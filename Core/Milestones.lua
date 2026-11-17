@@ -91,6 +91,8 @@ end
 -- Professions
 ------------------------------------------------------------------------
 -- Returns { { Name=, Rank=, Max= }, ... } for tracked skills.
+local skillRankSnapshot = {}     -- SkillName -> last seen rank
+M.SkillActiveUntil = {}          -- SkillName -> GetTime() until which it is shown as "active"
 function M.Skills()
   local out = {}
   if GetProfessions and GetProfessionInfo then
@@ -112,11 +114,32 @@ end
 
 function M.CheckSkills()
   local step = ST.db.Config.SkillStep or D.SkillStep
+  local now = GetTime()
   for _, s in ipairs(M.Skills()) do
+    -- Any rank gain marks the skill "active" for a while so its next step shows in the window.
+    local prev = skillRankSnapshot[s.Name]
+    if prev ~= nil and s.Rank > prev then
+      M.SkillActiveUntil[s.Name] = now + (ST.db.Config.SkillActiveSeconds or D.SkillActiveSeconds)
+    end
+    skillRankSnapshot[s.Name] = s.Rank
     for n = step, s.Rank - (s.Rank % step), step do
       ST.Record.Hit(D.Key("skill", s.Name, n), s.Name .. " " .. n)
     end
   end
+end
+
+function M.SkillIsActive(name)
+  local untilTime = M.SkillActiveUntil[name]
+  if untilTime and untilTime > GetTime() then return true end
+  if untilTime then M.SkillActiveUntil[name] = nil end
+  return false
+end
+
+-- Earliest expiry among active skills (so the window can drop the row on time), or nil.
+function M.NextSkillExpiry()
+  local soonest
+  for _, t in pairs(M.SkillActiveUntil) do if not soonest or t < soonest then soonest = t end end
+  return soonest
 end
 
 ------------------------------------------------------------------------
@@ -225,6 +248,9 @@ function M.Init()
       QueueQuestScan()
     elseif event == "SKILL_LINES_CHANGED" or event == "CHAT_MSG_SKILL" then
       M.CheckSkills(); if ST.Live then ST.Live.QueueRefresh() end
+      -- drop the row again once the active window lapses
+      local expiry = M.NextSkillExpiry()
+      if expiry then C_Timer.After(expiry - GetTime() + 0.5, function() if ST.Live then ST.Live.QueueRefresh() end end) end
     elseif event == "SPELLS_CHANGED" or event == "LEARNED_SPELL_IN_TAB" then
       M.CheckRiding()
     elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then

@@ -111,7 +111,7 @@ local function Slash(msg)
     U.Print("minimap icon set to %s", path)
   elseif cmd == "status" then
     local version = (C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)(ADDON_NAME, "Version")
-    U.Print("version %s | character %s | clock %s | times %s", tostring(version), U.CharacterKey(), ST.db.Config.Clock, ST.db.Config.TimesSide)
+    U.Print("version %s | character %s | race %s -> %s | clock %s | times %s", tostring(version), U.CharacterKey(), tostring(ST.Record.Current().CharacterRun_Race), tostring(ST.Record.Current().CharacterRun_StartZone), ST.db.Config.Clock, ST.db.Config.TimesSide)
   else
     U.Print("/split - toggle window | history | config | lock | reset | status")
   end

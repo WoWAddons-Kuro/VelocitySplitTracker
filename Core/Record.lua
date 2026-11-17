@@ -34,6 +34,12 @@ function R.Current()
     ST.db.Characters[key] = rec
   end
   rec.CharacterRun_Level = UnitLevel("player")
+  -- Self-heal: if the race wasn't in the table when first seen, try again each login.
+  if rec.CharacterRun_StartZone == "Unknown" or not rec.CharacterRun_StartZone then
+    local _, raceFile = UnitRace("player")
+    rec.CharacterRun_Race = raceFile
+    rec.CharacterRun_StartZone = D.RaceStartZone[raceFile] or "Unknown"
+  end
   R._current = rec
   return rec
 end

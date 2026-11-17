@@ -13,7 +13,7 @@ D.RaceStartZone = {
   NightElf = "Teldrassil",
   Draenei = "Azuremyst Isle",
   Orc = "Durotar", Troll = "Durotar",
-  Scourge = "Tirisfal Glades",
+  Scourge = "Tirisfal Glades", Undead = "Tirisfal Glades",
   Tauren = "Mulgore",
   BloodElf = "Eversong Woods",
   Worgen = "Gilneas", Goblin = "Kezan", Pandaren = "Wandering Isle",
@@ -31,6 +31,7 @@ D.MaxLevel = 60
 D.RidingShowFromLevel = 38
 D.SkillStep = 50
 D.SkillNearPct = 0.80
+D.SkillActiveSeconds = 180   -- a skill that just gained a point stays in the window this long
 
 -- Primary + the secondaries worth tracking. Keyed by English skill line name.
 D.TrackedSkills = {
