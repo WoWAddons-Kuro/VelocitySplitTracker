@@ -97,22 +97,64 @@ SplitTimerDB = {
 
 ## 5. Comparison
 
-### 5.1 Comparison key
-`CompareKey = (StartZone_Key, ClassFile | "ANY", RunPattern_Name | "default")`.
-The live window's title shows this as `{Start Zone} - {Class|Any} - {default|Pattern}`; Class and Pattern are dropdowns (section 6.1).
+**Decision (2026-11-17):** the primary comparison is against **one reference run**, not a
+composite of best splits. Most splits are *route-dependent*: "first Hogger kill" at 0:42 in a
+run that started in Elwynn means nothing to a run that started in Dun Morogh and met Hogger at
+level 14; a composite built across both is nonsense. One run is internally consistent, so every
+delta against it is meaningful. Best-splits-across-runs remains a secondary mode for the one
+case it is honest about: *your own* runs of the *same* route.
 
-### 5.2 What counts
-- Candidate runs = all `Characters` matching StartZone, matching Class (or all classes for ANY), matching Pattern (unnamed runs match `default`; a named run matches only its pattern **and** is also eligible in `default` — configurable `Config.Compare_IncludeNamedInDefault`, default **true**).
-- The current character is excluded from its own comparison.
-- **Per-milestone best** (LiveSplit "best segments" spirit, adapted to benchmarks): for each `Milestone_Key`, the minimum `Active` (or Played, per selected clock) across candidate runs *that reached it*. Runs do not have to be complete.
-- **PB run** (LiveSplit "personal best"): the candidate run with the lowest time at the **highest common level milestone**, i.e. the run that was fastest to the furthest level. Shown in History with a ★.
-- Comparison mode option: `BestPerMilestone` (default) or `PBRun`.
-- **Reference runs** (`Core/Reference.lua`): imported split tables (a VOD, someone's export) stored as ordinary records flagged `CharacterRun_Reference = true`, key `ref:<slug>`, one time for both clocks. They take part in comparison, History (`(ref)`) and the pivots like any run; never counted as the player's PB. `/split import` opens the paste box.
-- **Cross-zone comparison** (`Config.CompareAnyZone`, menu toggle / `/split anyzone`): candidates from any start zone, for comparing e.g. a human paladin reference against a dwarf run. Mode filter (`Compare_AnyMode`) still applies; references with unknown mode pass it.
+### 5.1 Comparison target
+`Config.Compare_Target = { Mode = "Run" | "BestSplits" | "None", RunKey = <CharacterRun_Key> }`
 
-### 5.3 Deltas
-- Reaching milestone M: `delta = mine - best(M)`. Green `-0:42` ahead, red `+1:10` behind, gold if it is a new best across all candidates. White/none if no comparison data.
-- Levels additionally track **segment** time: `level:n` segment = `t(level:n) - t(level:n-1)`. Footer "Previous Segment" uses the level segment delta; the level row tooltip shows cumulative and segment.
+| Mode | Meaning | Title line 2 |
+|---|---|---|
+| `Run` (**default**) | one specific `CharacterRun` (another character or an imported reference) | `vs Vitochie Dwarf Hunter 1:09 v` |
+| `BestSplits` | best time per milestone across the candidate set (the previous behaviour) | `vs Best splits v` |
+| `None` | no comparison; the window only records | `no comparison v` |
+
+- Stored **per context** `Config.Compare_ByContext[startZone .. "|" .. classFile]`, so each (zone, class) keeps its own pick and a rerolled Dwarf Hunter inherits the last Dwarf Hunter's reference.
+- **Auto-pick** when nothing is stored for the context: among candidates (5.2) prefer same zone & class, else same zone, else any; take the run that reached the highest level, ties by lower clock at that level. History's ★ uses the same rule. No candidate → `None`.
+- A chosen run that is deleted falls back to auto-pick and says so once in chat.
+
+### 5.2 Candidate set (filters)
+The title dropdowns are **filters that narrow the list of runs offered** as a reference (and the `BestSplits` pool); they no longer *are* the comparison.
+- **Start zone**: specific or `Any zone`; default = the character's own.
+- **Class**: specific or `Any`; default = the character's own.
+- **Pattern**: `default` or a named pattern; unnamed runs match `default`; named runs also appear under `default` when `Config.Compare_IncludeNamedInDefault` (default **true**).
+- **Mode** (pve / pvp / hardcore-*): must match unless `Config.Compare_AnyMode`; references with unknown mode pass.
+- The current character is never its own candidate.
+- **Reference runs** (`Core/Reference.lua`): imported split tables stored as ordinary records flagged `CharacterRun_Reference = true`, key `ref:<slug>`, one time for both clocks; shown `(ref)`; never the player's PB. `/split import` opens the paste box.
+
+### 5.3 Title bar
+```
+☰ Dun Morogh v - Hunter v - default v - Active v        9 🔒
+   vs Vitochie Dwarf Hunter 1:09 [2026.11.17 03:55] v
+```
+- Second title line = the comparison target as a dropdown: every candidate run (display name, first-seen stamp, `(ref)`), then `Best splits`, then `None`. `T.TitleHeight` 24 → 40.
+- History and the pivot cells gain **"Compare against this run"** (button / cell right-click) which sets the target for the current context.
+
+### 5.4 Deltas under each mode
+- `Run`: `delta = mine(M) − ref(M)`; blank when the reference never reached `M`. **Green** = ahead of the reference; **red** = behind; **gold** = ahead of the reference *and* faster than every candidate (a true record for that split).
+- `BestSplits`: `delta = mine(M) − min over candidates(M)`; gold = new best.
+- `None`: no deltas, no colours, best column blank.
+- `Previous Segment` (level n−1 → n) follows the mode: the reference's segment, or the best segment across candidates.
+- Level segment = `t(level:n) − t(level:n−1)` as before.
+
+### 5.5 Rows derived from the comparison
+- Time-based upcoming rows (`Enter X`, `Learn X` via `Compare.UpcomingByTime`) come from the **reference run only** in `Run` mode (its next unentered areas / unlearned professions beyond your current clock); from the candidate pool in `BestSplits`; off in `None`.
+- Level / profession / money rows have their own progress metrics and are unaffected.
+
+### 5.6 Implementation map
+- `Core/Compare.lua`: `C.Target() → { Mode, RunKey, Run }` (config → auto-pick); `C.Best(key)`, `C.BestLevelSegment(n)`, `C.UpcomingByTime(...)` become mode-aware; new `C.IsRecord(key, time)` (beats every candidate) and `C.CandidateRuns()` (sorted list for the dropdown: auto-pick first, then level desc, then name); `C.SetTarget(mode, runKey)` writes `Compare_ByContext`.
+- `Core/View.lua`: `Gold` = `C.IsRecord` in `Run` mode.
+- `UI/LiveWindow.lua`: second title line + `vs` dropdown; `TitleHeight` 40.
+- `UI/History.lua`, `UI/DataWindow.lua`: "Compare against this run" action.
+- Migration: `CompareZone / CompareClass / ComparePattern` keep their meaning as filters; `Compare_Target` is new and auto-picks until set. `Config.CompareAnyZone` already maps to zone `ANY`.
+
+### 5.7 Open questions
+- Should choosing a reference also snap the filters to that run's zone/class? Proposed **no**: filters narrow the list, the `vs` line names the pick; keeping them independent lets you pick a Dun Morogh reference while browsing `Any zone`.
+- Context key `zone|class` vs per-character GUID: proposed `zone|class` so rerolls inherit.
 
 ## 6. Live window (LiveSplit clone)
 
