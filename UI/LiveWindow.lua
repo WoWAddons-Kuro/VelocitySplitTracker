@@ -149,6 +149,7 @@ end
 -- Window construction
 ------------------------------------------------------------------------
 local frame
+local lastDone   -- V.Done from the most recent Refresh; UpdateTimer colours the clock from it between refreshes
 
 local function BuildTitle(f)
   local title = CreateFrame("Frame", nil, f)

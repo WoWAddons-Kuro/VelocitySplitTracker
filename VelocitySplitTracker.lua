@@ -153,13 +153,13 @@ local function Slash(msg)
     table.sort(rows, function(a, b) return a[2] > b[2] end)
     U.Print("CPU ms since reload (top %d):", math.min(12, #rows))
     for i = 1, math.min(12, #rows) do print(string.format("  %8.0f ms  %s", rows[i][2], rows[i][1])) end
-    local mine = GetAddOnCPUUsage("SplitTimer")
-    if mine then print(string.format("  SplitTimer frame OnUpdate share: %.0f ms", mine)) end
+    local mine = GetAddOnCPUUsage(ADDON_NAME)
+    if mine then print(string.format("  %s frame OnUpdate share: %.0f ms", ADDON_NAME, mine)) end
   elseif cmd == "icon" then
     -- dev helper: try an icon name on the minimap button, e.g. /split icon INV_Misc_Orb_05
     local Icon = LibStub and LibStub("LibDBIcon-1.0", true)
     local path = "Interface\\Icons\\" .. rest
-    if Icon and Icon:GetMinimapButton("SplitTimer") then Icon:GetMinimapButton("SplitTimer").icon:SetTexture(path) end
+    if Icon and Icon:GetMinimapButton("Velocity") then Icon:GetMinimapButton("Velocity").icon:SetTexture(path) end
     U.Print("minimap icon set to %s", path)
   elseif cmd == "status" then
     local version = (C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata)(ADDON_NAME, "Version")

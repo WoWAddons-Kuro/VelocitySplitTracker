@@ -1,7 +1,7 @@
-# SplitTimer — specification
+# Velocity Split Tracker — specification
 
 LiveSplit-style milestone tracker for WoW leveling, inside the game client.
-Repo: https://github.com/WoWAddons-Kuro/VelocitySplitTracker  · Folder/TOC: `VelocitySplitTracker` · Display name: Velocity (renamed from SplitTimer 2026-11-17; `SplitTimerDB` is migrated into `VelocitySplitTrackerDB` on first load) · Slash: `/split`, `/velocity` · Slash: `/split` · SavedVariables: `SplitTimerDB` (account-wide).
+Repo: https://github.com/WoWAddons-Kuro/VelocitySplitTracker  · Folder/TOC: `VelocitySplitTracker` · Display name: Velocity (renamed from SplitTimer 2026-11-17; a legacy `SplitTimerDB` is migrated into `VelocitySplitTrackerDB` on first load) · Slash: `/split`, `/velocity` · SavedVariables: `VelocitySplitTrackerDB` (account-wide).
 Target client: WoW Forever (`_forever_`, interface 16001, Mainline UI code). Lua 5.1 headless tests like BTT.Kuro.
 
 ## 1. Philosophy
@@ -35,7 +35,7 @@ Design consequences, so they are not re-argued:
 
 - **Record everything, curate later.** Every character automatically records every milestone it reaches, against two clocks. Nothing is ever lost because the player forgot to "start a run".
 - **Milestones are benchmarks, not a linear list.** A level-30 character may still not have done Vagash. So the UI shows the *next milestone on each axis*, not "the next row".
-- **Comparison is derived from history**, keyed by `(StartZone, Class|ANY, RunPattern|default)`. A run becomes a named "run pattern" when the player names it in the History window. Personal Best is computed, never hand-set.
+- **Comparison is derived from history**, keyed by `(StartZone|ANY, Class|ANY, RunPattern|personal|ANY)`. Unnamed runs are the `personal` pattern; a run becomes a named "run pattern" when the player names it in the History window. Personal Best is computed, never hand-set.
 - Level 60 freezes the run (read-only forever after).
 
 ## 2. Clocks
@@ -59,10 +59,10 @@ Design consequences, so they are not re-argued:
   - Any milestone hit
 - Both clocks are stored per milestone; display defaults to **Active** with Played shown small/secondary (option to swap or hide one).
 
-## 3. Data model (SavedVariables `SplitTimerDB`)
+## 3. Data model (SavedVariables `VelocitySplitTrackerDB`)
 
 ```lua
-SplitTimerDB = {
+VelocitySplitTrackerDB = {
   Version = 1,
   Config = { ... },                      -- global UI/behaviour options (section 7)
   Characters = {                         -- keyed by "Name-Realm"
@@ -73,7 +73,7 @@ SplitTimerDB = {
       CharacterRun_Race       = "NightElf",
       CharacterRun_Mode       = "pve",        -- pve | pvp | hardcore-pve | hardcore-pvp | unknown; travels with exports so others can align categories. /split mode overrides.
       CharacterRun_StartZone  = "Teldrassil",  -- StartZone_Key, resolved once from race (table), fallback first zone seen
-      CharacterRun_Pattern    = nil,          -- RunPattern_Name set by the player in History (nil = "default")
+      CharacterRun_Pattern    = nil,          -- RunPattern_Name set by the player in History (nil = "personal", the unnamed bucket)
       CharacterRun_CreatedAt  = 1763300000,   -- time() at first sight
       CharacterRun_Frozen     = false,        -- true once level 60 recorded
       CharacterRun_Level      = 23,           -- last known level (cheap display without login)
@@ -381,36 +381,40 @@ table (Active / Played / level segment), actions **Name pattern…**, **Clear pa
 ## 8. File layout
 
 ```
-SplitTimer/
-  SplitTimer.toc
+VelocitySplitTracker/
+  VelocitySplitTracker.toc
   Libs/LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0   (minimap button; copied from BTT.Kuro)
+  Core/Util.lua          time/delta formatting, Print, load-phase probes (taint diagnostics)
+  Core/Data.lua          race → start zone, riding spells, skill steps/caps, gold steps, icons, Milestone_Key helpers
+  Core/Record.lua        per-character run record (keyed by GUID), Record.Hit = the single milestone entry point
   Core/Clock.lua         Played + Active clocks, activity signals, persistence
-  Core/Milestones.lua    axis detectors → ST_Record(Milestone_Key)
-  Core/Compare.lua       candidate selection, best-per-milestone, PB run, deltas (pure Lua, tested)
-  Core/Plans.lua         default plans, plan storage, upcoming selection (pure Lua, tested)
-  Data/StartZones.lua    race → StartZone_Key; zone progression per StartZone
-  Data/DefaultPlans.lua
-  Data/Spells.lua        riding spell IDs, profession skill names
-  UI/Theme.lua           fonts, colours, row factory (alternating shading), time formatting
-  UI/LiveWindow.lua
-  UI/History.lua
-  UI/Config.lua
-  UI/Menu.lua            dropdown abstraction (UIDropDownMenu vs MenuUtil)
-  SplitTimer.lua         addon bootstrap, events, slash commands
-  tests/harness.lua, tests/run.lua   (lua5.1; covers Clock accumulation, Compare, Plans)
+  Core/Compare.lua       filters → candidates, comparison target (Auto/Run/BestSplits/None), best-per-milestone, segments
+  Core/Milestones.lua    axis detectors → Record.Hit(Milestone_Key); attention state
+  Core/Locations.lua     user-placed location splits (per start zone), proximity poll
+  Core/View.lua          view-model for the live window (title block, done rows, upcoming rows)
+  Core/Pivot.lua         fact table + best-grid for the data-window pivots
+  Core/Reference.lua     imported reference runs (ref:<slug>)
+  UI/Theme.lua           fonts, colours, textures, menu abstraction
+  UI/LiveWindow.lua      the split window
+  UI/History.lua         run list + detail (hosted in the data window)
+  UI/DataWindow.lua      tabbed window: By Level / By Class / By Start Zone / History
+  UI/Config.lua          settings panel
+  VelocitySplitTracker.lua   addon bootstrap, DB init/migration, slash commands, minimap, popups
+  Assets/                icons, screenshots
+  tests/                 (planned) lua5.1 headless harness; covers Clock accumulation, Compare, View
   README.md, CHANGELOG.md, LICENSE, .gitignore, .pkgmeta
 ```
 
 ## 9. Phases
 
 - [x] **P0 Scaffold**: git init, TOC, bootstrap, SavedVariables schema, `/split status`. (test harness: pending)
-- [x] **P1 Clocks**: Played sync, Active accumulator with idle/forced-stop rules, persistence. (unit tests: pending; in-game verification: pending)
-- [x] **P2 Milestones**: level (+login reconcile), quest turn-in/accept, kill (PARTY_KILL credit), zone, profession, riding, mounted, manual. In-game API verification pending.
-- [~] **P3 Compare + Plans**: compare-key resolution, best-per-milestone, level segments, upcoming selection done. PB-run marker, default plans and plan editor not started.
-- [x] **P4 Live window**: theme, rows, title dropdowns, big timer, footer, times-left option, lock/drag. (hide-in-combat: pending)
-- [ ] **P5 History window**: list, detail, name pattern, delete, copy as text.
-- [ ] **P6 Config panel**: plan editor + options; Active clock forced stop while open.
-- [ ] **P7 Polish**: minimap button, README, CHANGELOG, first release tag.
+- [x] **P1 Clocks**: Played sync, Active accumulator with idle/forced-stop rules, persistence. (unit tests: pending)
+- [x] **P2 Milestones**: level (+login reconcile), quest turn-in/accept, kill (XP-gain chat credit), area, profession, first-learn, money, death, riding, mounted, location, manual.
+- [~] **P3 Compare**: filters, Auto / Run / BestSplits / None target, level segments, upcoming selection, reference import. Plans / plan editor (7.2) not started.
+- [x] **P4 Live window**: theme, rows, collapsible title with dropdown rows, big/compact timer, footer, times-left option, lock/drag. (hide-in-combat: pending)
+- [x] **P5 Data window**: By Level / By Class / By Start Zone pivots + History (list, detail, name pattern, delete, copy as text, compare against this run).
+- [~] **P6 Config panel**: options exist; plan editor not started. Active clock forced stop while open.
+- [~] **P7 Polish**: minimap button, README, CHANGELOG, icons done; first release tag pending.
 
 ## 10. Open questions / to verify in-game
 
