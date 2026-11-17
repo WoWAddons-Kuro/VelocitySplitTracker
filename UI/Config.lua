@@ -1,5 +1,5 @@
 -- Settings panel registered with the Blizzard options UI. Empty shell for now.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 local T = ST.Theme
 
 ST.Config = {}

@@ -1,5 +1,5 @@
 -- Visual constants and small widget factories shared by all SplitTimer windows.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 
 ST.Theme = {}
 local T = ST.Theme

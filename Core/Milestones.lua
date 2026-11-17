@@ -1,8 +1,9 @@
 -- Detectors for every milestone axis. Each one calls ST.Record.Hit(key, label).
 -- Also keeps the live "upcoming" helpers: recent quests, profession ranks, riding.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 local U = ST.Util
 local D = ST.Data
+-- (load phase set on the ADDON_NAME line)
 
 ST.Milestones = {}
 local M = ST.Milestones
@@ -243,7 +244,7 @@ local questScanQueued = false
 local function QueueQuestScan()
   if questScanQueued then return end
   questScanQueued = true
-  C_Timer.After(1.0, function() questScanQueued = false; M.ScanQuestLog(); if ST.Live then ST.Live.QueueRefresh() end end)
+  C_Timer.After(1.0, function() questScanQueued = false; U.InPhase("Milestones.timer:ScanQuestLog", M.ScanQuestLog); if ST.Live then ST.Live.QueueRefresh() end end)
 end
 
 function M.Init()
@@ -272,6 +273,7 @@ function M.Init()
     if IsMounted and IsMounted() and not ST.Record.Has("mounted:1") then ST.Record.Hit("mounted:1", "First Mount") end
   end)
   frame:SetScript("OnEvent", function(_, event, ...)
+    local outer = U.Phase("Milestones.event:" .. event)
     if event == "PLAYER_LEVEL_UP" then
       local level = ...
       ST.Record.Current().CharacterRun_Level = level
@@ -307,13 +309,15 @@ function M.Init()
       if ST.Live then ST.Live.QueueRefresh() end
     elseif event == "PLAYER_ENTERING_WORLD" then
       C_Timer.After(3, function()
-        ST.Probe = "ScanQuestLog"; M.ScanQuestLog()
-        ST.Probe = "CheckSkills";  M.CheckSkills()
-        ST.Probe = "CheckRiding";  M.CheckRiding()
-        ST.Probe = "OnZone";       OnZone()
-        ST.Probe = nil
+        local o = U.Phase("Milestones.enterworld+3s")
+        U.InPhase("ScanQuestLog", M.ScanQuestLog)
+        U.InPhase("CheckSkills", M.CheckSkills)
+        U.InPhase("CheckRiding", M.CheckRiding)
+        U.InPhase("OnZone", OnZone)
+        U.PhaseEnd(o)
         if ST.Live then ST.Live.QueueRefresh() end
       end)
     end
+    U.PhaseEnd(outer)
   end)
 end

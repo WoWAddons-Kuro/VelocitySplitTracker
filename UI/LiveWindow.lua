@@ -1,9 +1,10 @@
 -- The LiveSplit-style main window. Currently rendered from ST.Mock so the look
 -- can be designed first; the data accessors at the top are the seam the real
 -- engine will plug into.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 local T = ST.Theme
 local U = ST.Util
+-- (load phase set on the ADDON_NAME line)
 
 ST.Live = {}
 local L = ST.Live
@@ -65,8 +66,9 @@ local function LayoutRow(row, timesLeft)
   end
 end
 
-local function SetRowIcon(row, axis)
-  local tex = ST.Data.AxisIcon[axis]
+-- Per-row icon: explicit item.Icon (e.g. the profession's own icon) beats the axis default.
+local function SetRowIcon(row, axis, icon)
+  local tex = icon or ST.Data.AxisIcon[axis]
   if tex then
     row.icon:SetTexture(tex)
     row.icon:Show()
@@ -77,7 +79,7 @@ end
 
 local function FillDoneRow(row, item)
   local delta = (item.Best and item.Time) and (item.Time - item.Best) or nil
-  SetRowIcon(row, item.Axis)
+  SetRowIcon(row, item.Axis, item.Icon)
   row.label:SetText(item.Label)
   T.SetColour(row.label, item.Inferred and T.Colour.TextDim or T.Colour.Text)
   row.time:SetText(U.FormatTime(item.Time))
@@ -88,7 +90,7 @@ local function FillDoneRow(row, item)
 end
 
 local function FillUpcomingRow(row, item, width)
-  SetRowIcon(row, item.Axis)
+  SetRowIcon(row, item.Axis, item.Icon)
   local label = item.Label
   if item.ProgressText then label = label .. "  |cff999999" .. item.ProgressText .. "|r" end
   row.label:SetText(label)
@@ -268,6 +270,7 @@ end
 ------------------------------------------------------------------------
 function L.Refresh()
   if not frame then return end
+  local outer = U.Phase("Live.Refresh")
   local V = GetView()
   lastDone = V.Done
   local cfg = Cfg()
@@ -341,6 +344,7 @@ function L.Refresh()
 
   frame:SetHeight(-y)
   L.UpdateTimer(V)
+  U.PhaseEnd(outer)
 end
 
 function L.UpdateTimer(V)

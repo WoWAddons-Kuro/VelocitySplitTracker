@@ -1,5 +1,5 @@
 -- Shared helpers: time formatting, colour constants, small table utils.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 
 ST.Util = {}
 local U = ST.Util
@@ -43,4 +43,21 @@ end
 function U.Print(msg, ...)
   if select("#", ...) > 0 then msg = string.format(msg, ...) end
   print("|cff5ad65aSplitTimer|r: " .. msg)
+end
+
+-- Startup/load phase probes. ST.Probe is read by the ADDON_ACTION_FORBIDDEN handler,
+-- which fires synchronously inside the offending call, so the current phase names it.
+-- Usage: local p = U.Phase("name") ... U.PhaseEnd(p)
+function U.Phase(name)
+  local outer = ST.Probe
+  ST.Probe = outer and (outer .. ">" .. name) or name
+  return outer
+end
+function U.PhaseEnd(outer) ST.Probe = outer end
+-- Run fn under a named phase (errors still propagate, phase is restored).
+function U.InPhase(name, fn, ...)
+  local outer = U.Phase(name)
+  local ok, err = pcall(fn, ...)
+  U.PhaseEnd(outer)
+  if not ok then error(err, 0) end
 end

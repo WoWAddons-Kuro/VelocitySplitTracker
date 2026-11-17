@@ -1,6 +1,6 @@
 -- Comparison: which runs are candidates for the current compare key, and the
 -- best time per milestone across them. Pure logic over SplitTimerDB.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 
 ST.Compare = {}
 local C = ST.Compare

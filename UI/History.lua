@@ -1,6 +1,6 @@
 -- History window: list of recorded characters/runs and their milestone detail.
 -- Placeholder layout for now; real data comes with Core/Compare.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 local T = ST.Theme
 local U = ST.Util
 

@@ -1,6 +1,6 @@
 -- The per-character run record in SplitTimerDB.Characters and the single
 -- entry point for recording a milestone.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 local U = ST.Util
 local D = ST.Data
 

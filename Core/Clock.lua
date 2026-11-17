@@ -2,8 +2,9 @@
 --   Played : server /played total, kept current by local accumulation.
 --   Active : /played accumulated only while the character is doing something.
 -- See SPEC.md section 2 for the rules.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 local U = ST.Util
+-- (load phase set on the ADDON_NAME line)
 
 ST.Clock = {}
 local C = ST.Clock
@@ -157,15 +158,17 @@ function C.Init()
   pcall(frame.RegisterUnitEvent, frame, "UNIT_SPELLCAST_CHANNEL_START", "player")
   pcall(frame.RegisterUnitEvent, frame, "UNIT_SPELLCAST_SENT", "player")
   frame:SetScript("OnEvent", function(_, event, ...)
+    local outer = U.Phase("Clock.event:" .. event)
     if event == "TIME_PLAYED_MSG" then OnTimePlayed((...))
     elseif event == "PLAYER_REGEN_DISABLED" then inCombat = true; C.Activity()
     elseif event == "PLAYER_REGEN_ENABLED" then inCombat = false; C.Activity()
     elseif event == "PLAYER_LOGOUT" then Rec().PlayedSeconds_Total = C.PlayedNow()
     else C.Activity() end
+    U.PhaseEnd(outer)
   end)
-  frame:SetScript("OnUpdate", function(_, elapsed) Tick(elapsed) end)
+  frame:SetScript("OnUpdate", function(_, elapsed) local o = U.Phase("Clock.tick"); Tick(elapsed); U.PhaseEnd(o) end)
   -- Active starts stopped; the first real activity after login starts it.
-  C_Timer.After(2, C.RequestPlayed)
+  C_Timer.After(2, function() U.InPhase("Clock.timer:RequestPlayed", C.RequestPlayed) end)
   -- No periodic re-sync: each request prints "Total time played" to chat and we cannot
   -- suppress that without tainting the chat frame. GetTime() accumulation drifts negligibly.
 end

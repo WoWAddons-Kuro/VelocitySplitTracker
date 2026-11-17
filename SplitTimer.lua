@@ -1,6 +1,7 @@
 -- Bootstrap: saved variables, slash commands, minimap button, event wiring.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 local U = ST.Util
+-- (load phase set on the ADDON_NAME line)
 
 _G.SplitTimer = ST
 
@@ -126,6 +127,7 @@ local function Slash(msg)
 end
 
 local f = CreateFrame("Frame")
+ST.Probe = "load:SplitTimer.lua:frame"
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
 -- Diagnostic: name the protected function when the client blocks us (taint hunting).
@@ -138,31 +140,39 @@ f:SetScript("OnEvent", function(_, event, arg1, arg2)
     return
   end
   if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
-    InitDB()
-    SLASH_SPLITTIMER1 = "/split"
-    SLASH_SPLITTIMER2 = "/splittimer"
-    SlashCmdList.SPLITTIMER = Slash
-    ST.Config.Create()
-    SetupMinimap()
-    StaticPopupDialogs["SPLITTIMER_NAME_PATTERN"] = {
-      text = "Name this run's route pattern (blank = default):",
-      button1 = OKAY, button2 = CANCEL,
-      hasEditBox = true, maxLetters = 40,
-      OnShow = function(self) self.editBox:SetText(ST.Record.Current().CharacterRun_Pattern or "") end,
-      OnAccept = function(self)
-        local name = self.editBox:GetText():match("^%s*(.-)%s*$")
-        ST.Record.Current().CharacterRun_Pattern = (name ~= "" and name ~= "default") and name or nil
-        ST.Compare.Invalidate(); ST.Live.Refresh()
-      end,
-      EditBoxOnEnterPressed = function(self) local p = self:GetParent(); p.button1:Click() end,
-      EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
-      timeout = 0, whileDead = true, hideOnEscape = true,
-    }
+    local function Stage(name, fn)
+      local ok, err = pcall(U.InPhase, "ADDON_LOADED:" .. name, fn)
+      if not ok then U.Print("|cffff4040%s failed:|r %s", name, tostring(err)) end
+    end
+    Stage("InitDB", InitDB)
+    Stage("Slash", function()
+      SLASH_SPLITTIMER1 = "/split"
+      SLASH_SPLITTIMER2 = "/splittimer"
+      SlashCmdList.SPLITTIMER = Slash
+    end)
+    Stage("ConfigPanel", ST.Config.Create)
+    Stage("Minimap", SetupMinimap)
+    Stage("Popup", function()
+      StaticPopupDialogs["SPLITTIMER_NAME_PATTERN"] = {
+        text = "Name this run's route pattern (blank = default):",
+        button1 = OKAY, button2 = CANCEL,
+        hasEditBox = true, maxLetters = 40,
+        OnShow = function(self) self.editBox:SetText(ST.Record.Current().CharacterRun_Pattern or "") end,
+        OnAccept = function(self)
+          local name = self.editBox:GetText():match("^%s*(.-)%s*$")
+          ST.Record.Current().CharacterRun_Pattern = (name ~= "" and name ~= "default") and name or nil
+          ST.Compare.Invalidate(); ST.Live.Refresh()
+        end,
+        EditBoxOnEnterPressed = function(self) local p = self:GetParent(); p.button1:Click() end,
+        EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+        timeout = 0, whileDead = true, hideOnEscape = true,
+      }
+    end)
   elseif event == "PLAYER_LOGIN" then
     -- Each stage is isolated: a failure in one must not stop the window from being created,
     -- and must be visible in chat rather than silently swallowed.
     local function Stage(name, fn)
-      local ok, err = pcall(fn)
+      local ok, err = pcall(U.InPhase, "PLAYER_LOGIN:" .. name, fn)
       if not ok then U.Print("|cffff4040%s failed:|r %s", name, tostring(err)) end
     end
     Stage("Record", ST.Record.Current)
@@ -171,3 +181,4 @@ f:SetScript("OnEvent", function(_, event, arg1, arg2)
     Stage("Window", ST.Live.Create)   -- applies Config.Shown itself
   end
 end)
+ST.Probe = nil  -- end of file-load phase for SplitTimer.lua

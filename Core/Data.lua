@@ -1,5 +1,5 @@
 -- Static game data: start zones per race, riding spells, icons per axis.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 
 ST.Data = {}
 local D = ST.Data
@@ -31,6 +31,7 @@ D.RidingSpells = {
 D.MaxLevel = 60
 D.RidingShowFromLevel = 38
 D.SkillStep = 50
+D.SkillCeiling = 300         -- absolute max a profession can reach on this client
 D.SkillNearPct = 0.80
 D.SkillActiveSeconds = 180   -- a skill that just gained a point stays in the window this long
 

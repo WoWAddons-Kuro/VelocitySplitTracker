@@ -1,5 +1,5 @@
 -- Builds what the live window draws from the current record + comparison.
-local ADDON_NAME, ST = ...
+local ADDON_NAME, ST = ...; ST.Probe = "load:" .. (debugstack(1, 1, 0):match("[^\\/]+%.lua") or "?")
 local U = ST.Util
 local D = ST.Data
 
@@ -85,7 +85,9 @@ function V.Upcoming(limit)
     local nextStep = (math.floor(s.Rank / step) + 1) * step
     local near = s.Rank / nextStep >= (cfg.SkillNearPct or D.SkillNearPct)
     local active = ST.Milestones.SkillIsActive(s.Name)
-    if nextStep <= (s.Max or 300) and (near or active) then
+    -- Not gated on the current trainer cap (s.Max): the cap rises with training, the
+    -- milestone is still "next 50". Only the absolute skill ceiling applies.
+    if nextStep <= D.SkillCeiling and (near or active) then
       local key = D.Key("skill", s.Name, nextStep)
       out[#out + 1] = { Key = key, Axis = "skill", Icon = D.SkillIcon[s.Name], Label = s.Name .. " " .. nextStep, Best = ST.Compare.Best(key),
         Progress = s.Rank / nextStep, ProgressText = s.Rank .. "/" .. nextStep, Active = active }
