@@ -1,5 +1,5 @@
 ## Interface: 16001
-## Title: Velocity
+## Title: Velocity Split Tracker
 ## Notes: Split tracker and auto-generated leveling guide in one. Times your levels, quests, kills, professions and money against your best runs or an imported reference - on an Active clock that stops when you walk away, so real-life interruptions don't count. Reminds you when a profession can be trained and shows the next milestone of the run you are chasing.
 ## Author: Kuro
 ## Version: dev
