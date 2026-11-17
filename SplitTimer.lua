@@ -128,7 +128,15 @@ end
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_LOGIN")
-f:SetScript("OnEvent", function(_, event, arg1)
+-- Diagnostic: name the protected function when the client blocks us (taint hunting).
+pcall(f.RegisterEvent, f, "ADDON_ACTION_BLOCKED")
+pcall(f.RegisterEvent, f, "ADDON_ACTION_FORBIDDEN")
+f:SetScript("OnEvent", function(_, event, arg1, arg2)
+  if event == "ADDON_ACTION_BLOCKED" or event == "ADDON_ACTION_FORBIDDEN" then
+    local addonName, func = arg1, arg2
+    if addonName == ADDON_NAME then U.Print("|cffff4040%s|r blocked call: %s", event, tostring(func)) end
+    return
+  end
   if event == "ADDON_LOADED" and arg1 == ADDON_NAME then
     InitDB()
     SLASH_SPLITTIMER1 = "/split"
