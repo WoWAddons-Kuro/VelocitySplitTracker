@@ -154,8 +154,19 @@ The title dropdowns are **filters that narrow the list of runs offered** as a re
 ☰ Dun Morogh v - Hunter v - default v - Active v        9 🔒
    vs Vitochie Dwarf Hunter 1:09 [2026.11.17 03:55] v
 ```
-- Second title line = the comparison target as a dropdown: every candidate run (display name, first-seen stamp, `(ref)`), then `Best splits`, then `None`. `T.TitleHeight` 24 → 40.
-  The first entry is **`Auto`**; the line reads `vs auto: <current pick>` so you always see who you are racing.
+- Second title line = the comparison target as a dropdown. `T.TitleHeight` 24 → 40.
+- **The dropdown is one ranked list of candidate runs**, in `Auto` order (5.1.1: eligible first, by `T_end` asc). `Auto` is not a separate abstract entry — it *is* the top-ranked row, marked with an auto icon; the rows below are aligned with a blank icon gap:
+
+```
+ [⟳]  vs Vitochie Dwarf Hunter 1:09 [2026.11.17 03:55]     ← rank 1 = what Auto picks now; choosing it = Auto mode
+      vs Kuro Ciderkeg [2026.11.17 01:10]                   ← choosing any lower row = Run mode, pinned
+      vs Human Pally 55m [2026.11.17 03:56] (ref)
+ ──────────────
+      Best splits
+      No comparison
+```
+- Selecting the icon row sets `Mode = Auto` (the pick may hand off later); selecting any other run pins it (`Mode = Run`). The currently active choice is check-marked. The title line shows `vs <name>` either way, with the auto icon prefixed when in `Auto`.
+- The icon: `Interface\Buttons\UI-RefreshButton` (circular arrows) sized to the row text; the gap on other rows is the same width so names align.
 - History and the pivot cells gain **"Compare against this run"** (button / cell right-click) which sets the target for the current context.
 
 ### 5.4 Deltas under each mode
