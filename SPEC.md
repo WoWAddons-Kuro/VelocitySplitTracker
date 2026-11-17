@@ -197,11 +197,11 @@ SplitTimer/
 
 ## 9. Phases
 
-- [ ] **P0 Scaffold**: git init, TOC, bootstrap, SavedVariables schema + migration stub, `/split status`, test harness.
-- [ ] **P1 Clocks**: Played sync, Active accumulator with idle/forced-stop rules, persistence, unit tests for accumulator math.
-- [ ] **P2 Milestones**: level (+login reconcile), quest turn-in/accept, kill, zone, profession, riding, mounted, manual. Verify each API in-game (section 10).
-- [ ] **P3 Compare + Plans**: compare-key resolution, best-per-milestone, PB run, level segments, default plans, upcoming selection. Unit tests.
-- [ ] **P4 Live window**: theme, rows, title dropdowns, big timer, footer, times-left option, lock/drag, hide-in-combat.
+- [x] **P0 Scaffold**: git init, TOC, bootstrap, SavedVariables schema, `/split status`. (test harness: pending)
+- [x] **P1 Clocks**: Played sync, Active accumulator with idle/forced-stop rules, persistence. (unit tests: pending; in-game verification: pending)
+- [x] **P2 Milestones**: level (+login reconcile), quest turn-in/accept, kill (PARTY_KILL credit), zone, profession, riding, mounted, manual. In-game API verification pending.
+- [~] **P3 Compare + Plans**: compare-key resolution, best-per-milestone, level segments, upcoming selection done. PB-run marker, default plans and plan editor not started.
+- [x] **P4 Live window**: theme, rows, title dropdowns, big timer, footer, times-left option, lock/drag. (hide-in-combat: pending)
 - [ ] **P5 History window**: list, detail, name pattern, delete, copy as text.
 - [ ] **P6 Config panel**: plan editor + options; Active clock forced stop while open.
 - [ ] **P7 Polish**: minimap button, README, CHANGELOG, first release tag.

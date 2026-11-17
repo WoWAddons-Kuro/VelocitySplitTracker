@@ -82,6 +82,26 @@ local function Slash(msg)
     end
   elseif cmd == "pattern" then StaticPopup_Show("SPLITTIMER_NAME_PATTERN")
   elseif cmd == "played" then ST.Clock.RequestPlayed()
+  elseif cmd == "cpu" then
+    -- Top addons by CPU since last /reload. Needs: /console scriptProfile 1 + /reload.
+    if GetCVar("scriptProfile") ~= "1" then
+      U.Print("profiling is off. Run: /console scriptProfile 1  then /reload, play a bit, then /split cpu again. Turn off afterwards with scriptProfile 0.")
+      return
+    end
+    UpdateAddOnCPUUsage()
+    local numAddons = (C_AddOns and C_AddOns.GetNumAddOns or GetNumAddOns)()
+    local getInfo = (C_AddOns and C_AddOns.GetAddOnInfo or GetAddOnInfo)
+    local rows = {}
+    for i = 1, numAddons do
+      local name = getInfo(i)
+      local ms = GetAddOnCPUUsage(i)
+      if ms and ms > 0 then rows[#rows + 1] = { name, ms } end
+    end
+    table.sort(rows, function(a, b) return a[2] > b[2] end)
+    U.Print("CPU ms since reload (top %d):", math.min(12, #rows))
+    for i = 1, math.min(12, #rows) do print(string.format("  %8.0f ms  %s", rows[i][2], rows[i][1])) end
+    local mine = GetAddOnCPUUsage("SplitTimer")
+    if mine then print(string.format("  SplitTimer frame OnUpdate share: %.0f ms", mine)) end
   elseif cmd == "icon" then
     -- dev helper: try an icon name on the minimap button, e.g. /split icon INV_Misc_Orb_05
     local Icon = LibStub and LibStub("LibDBIcon-1.0", true)
