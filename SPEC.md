@@ -105,17 +105,40 @@ delta against it is meaningful. Best-splits-across-runs remains a secondary mode
 case it is honest about: *your own* runs of the *same* route.
 
 ### 5.1 Comparison target
-`Config.Compare_Target = { Mode = "Run" | "BestSplits" | "None", RunKey = <CharacterRun_Key> }`
+`Config.Compare_Target = { Mode = "Auto" | "Run" | "BestSplits" | "None", RunKey = <CharacterRun_Key> }`
 
 | Mode | Meaning | Title line 2 |
 |---|---|---|
-| `Run` (**default**) | one specific `CharacterRun` (another character or an imported reference) | `vs Vitochie Dwarf Hunter 1:09 v` |
+| `Auto` (**default**) | a *continuously re-evaluated* pick: the candidate run that is **fastest to its own end, among runs whose end lies ahead of you** (5.1.1). Runs are judged as units by their extent. | `vs auto: Vitochie Dwarf Hunter 1:09 v` |
+| `Run` | one specific `CharacterRun`, pinned (another character or an imported reference) | `vs Vitochie Dwarf Hunter 1:09 v` |
 | `BestSplits` | best time per milestone across the candidate set (the previous behaviour) | `vs Best splits v` |
 | `None` | no comparison; the window only records | `no comparison v` |
 
-- Stored **per context** `Config.Compare_ByContext[startZone .. "|" .. classFile]`, so each (zone, class) keeps its own pick and a rerolled Dwarf Hunter inherits the last Dwarf Hunter's reference.
-- **Auto-pick** when nothing is stored for the context: among candidates (5.2) prefer same zone & class, else same zone, else any; take the run that reached the highest level, ties by lower clock at that level. History's ★ uses the same rule. No candidate → `None`.
-- A chosen run that is deleted falls back to auto-pick and says so once in chat.
+- Stored **per context** `Config.Compare_ByContext[startZone .. "|" .. classFile]`, so each (zone, class) keeps its own setting and a rerolled Dwarf Hunter inherits the last Dwarf Hunter's choice.
+- A pinned run that is deleted falls back to `Auto` and says so once in chat.
+
+#### 5.1.1 `Auto` selection rule
+Each candidate run has an **extent** `E(r)` = the highest *real* level milestone it reached, and an **end time** `T_end(r)` = its clock at `E(r)`. Given the player's current level `L`:
+
+1. Eligible = candidates with `E(r) > L` (their run still has something ahead of you). If none, eligible = all candidates (you have out-levelled every run; keep the best one for the done rows).
+2. Pick the eligible run with the **lowest `T_end(r)`**. Ties → higher `E(r)`, then lower clock at level `L+1`, then name.
+3. Re-evaluate on every level ding (and when the candidate set changes). The pick therefore *hands off*: with run A (10:00 to level 5, extent 5) and run B (12:00 to level 5, 30:00 to level 10, extent 10), `Auto` compares against **A until you ding 5**, then **B** — because at level 5 A no longer has anything ahead of you.
+
+Why "fastest to its own end" rather than "fastest to the next level": a run is a unit — its early splits only make sense inside the route that produced its end time. Judging each run by its own extent is what keeps the comparison honest while still letting the shortest-extent-but-fastest run be the reference for as long as it applies.
+
+- The hand-off is announced once in chat (`comparison: now vs Kuro Ciderkeg (run A ended at level 5)`) and the `vs auto:` line updates.
+- Deltas on **done rows** always use the run that was the reference *when that split was hit* (stored on the milestone as `Milestone.CompareRunKey`), so a hand-off never recolours history.
+- History's ★ marks, per `(zone, class, pattern)`, the run with the highest extent, ties by lower `T_end` — a *different* question ("best run overall") from `Auto` ("best run for where I am now"); both are documented so the two badges are not confused.
+
+```lua
+-- pseudo
+function Compare.AutoPick(candidates, playerLevel)
+  local eligible = filter(candidates, function(r) return Extent(r) > playerLevel end)
+  if #eligible == 0 then eligible = candidates end
+  sort(eligible, by: EndTime asc, Extent desc, TimeAt(playerLevel+1) asc, Name)
+  return eligible[1]
+end
+```
 
 ### 5.2 Candidate set (filters)
 The title dropdowns are **filters that narrow the list of runs offered** as a reference (and the `BestSplits` pool); they no longer *are* the comparison.
@@ -132,6 +155,7 @@ The title dropdowns are **filters that narrow the list of runs offered** as a re
    vs Vitochie Dwarf Hunter 1:09 [2026.11.17 03:55] v
 ```
 - Second title line = the comparison target as a dropdown: every candidate run (display name, first-seen stamp, `(ref)`), then `Best splits`, then `None`. `T.TitleHeight` 24 → 40.
+  The first entry is **`Auto`**; the line reads `vs auto: <current pick>` so you always see who you are racing.
 - History and the pivot cells gain **"Compare against this run"** (button / cell right-click) which sets the target for the current context.
 
 ### 5.4 Deltas under each mode
@@ -146,7 +170,7 @@ The title dropdowns are **filters that narrow the list of runs offered** as a re
 - Level / profession / money rows have their own progress metrics and are unaffected.
 
 ### 5.6 Implementation map
-- `Core/Compare.lua`: `C.Target() → { Mode, RunKey, Run }` (config → auto-pick); `C.Best(key)`, `C.BestLevelSegment(n)`, `C.UpcomingByTime(...)` become mode-aware; new `C.IsRecord(key, time)` (beats every candidate) and `C.CandidateRuns()` (sorted list for the dropdown: auto-pick first, then level desc, then name); `C.SetTarget(mode, runKey)` writes `Compare_ByContext`.
+- `Core/Compare.lua`: `C.Target() → { Mode, RunKey, Run }` (config → `AutoPick` when `Auto`, re-run on `PLAYER_LEVEL_UP`); `C.Extent(rec)`, `C.EndTime(rec)`; `C.Best(key)`, `C.BestLevelSegment(n)`, `C.UpcomingByTime(...)` mode-aware; `C.IsRecord(key, time)`; `C.CandidateRuns()` (dropdown order: Auto, then by `T_end` asc); `C.SetTarget(mode, runKey)` writes `Compare_ByContext`. `Record.Hit` stores `CompareRunKey` on each real milestone.
 - `Core/View.lua`: `Gold` = `C.IsRecord` in `Run` mode.
 - `UI/LiveWindow.lua`: second title line + `vs` dropdown; `TitleHeight` 40.
 - `UI/History.lua`, `UI/DataWindow.lua`: "Compare against this run" action.
