@@ -141,20 +141,24 @@ function V.Upcoming(limit)
     end
   end
 
-  -- Money acquired: special case. Money is always "progressing", so the recent-progress rule
-  -- would keep this row up permanently. It only appears within Attention_MoneyNearPct of the
-  -- next step (>= 80 %) and is sticky from there until the step is hit.
+  -- Money acquired: special case. Money is always "progressing", so it gets no recent-progress
+  -- rule. Either pinned as the last row (Config.AlwaysShowMoney) or shown only within
+  -- Attention_MoneyNearPct of the next step (>= 80 %), sticky from there until the step is hit.
+  local moneyRow
   do
     local nextStep = ST.Milestones.NextGoldStep()
     if nextStep then
       local total = ST.Milestones.GoldAcquired()
       local frac = total / nextStep
-      if frac >= (cfg.Attention_MoneyNearPct or D.Attention_MoneyNearPct) then
+      local near = frac >= (cfg.Attention_MoneyNearPct or D.Attention_MoneyNearPct)
+      if cfg.AlwaysShowMoney or near then
         local key = D.Key("gold", nextStep)
         -- "Money Acquired - 10s"; the bar shows how close, the short current amount sits after it.
-        out[#out + 1] = { Key = key, Axis = "gold", Icon = D.GoldIcon, Label = "Money Acquired - " .. D.FormatCopper(nextStep, true), Best = ST.Compare.Best(key),
+        moneyRow = { Key = key, Axis = "gold", Icon = D.GoldIcon, Label = "Money Acquired - " .. D.FormatCopper(nextStep, true), Best = ST.Compare.Best(key),
           Progress = frac, ProgressText = D.FormatCopper(total, true),
           Sticky = true, LastProgress = ST.Milestones.Attention().Gold }
+        -- Not pinned: compete for a slot like any other row.
+        if not cfg.AlwaysShowMoney then out[#out + 1] = moneyRow; moneyRow = nil end
       end
     end
   end
@@ -200,6 +204,8 @@ function V.Upcoming(limit)
   table.sort(out, function(a, b) if a.SortKey ~= b.SortKey then return a.SortKey > b.SortKey end return a.Key < b.Key end)
   if levelRow then table.insert(out, 1, levelRow) end
   while #out > limit do table.remove(out) end
+  -- Pinned money row: always last, outside the cap.
+  if moneyRow then out[#out + 1] = moneyRow end
   return out
 end
 

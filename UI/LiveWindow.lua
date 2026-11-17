@@ -504,6 +504,7 @@ function L.ShowContextMenuImpl(anchor)
     { text = "Lock window", checked = cfg.Locked, func = function() L.SetLocked(not cfg.Locked) end },
     { text = "Times on left", checked = cfg.TimesSide == "LEFT", func = function() cfg.TimesSide = cfg.TimesSide == "LEFT" and "RIGHT" or "LEFT"; L.Refresh() end },
     { text = "Large timer (LiveSplit style)", checked = cfg.BigTimer == true, func = function() cfg.BigTimer = not cfg.BigTimer; L.Refresh() end },
+    { text = "Always show next money milestone", checked = cfg.AlwaysShowMoney == true, func = function() cfg.AlwaysShowMoney = not cfg.AlwaysShowMoney; L.Refresh() end },
     { text = "Show Played clock", checked = cfg.Clock == "PLAYED", func = function() cfg.Clock = cfg.Clock == "PLAYED" and "ACTIVE" or "PLAYED"; ST.Compare.Invalidate(); L.Refresh() end },
     { text = ST.Clock.IsPaused() and "Resume active clock" or "Pause active clock", func = function() ST.Clock.SetPaused(not ST.Clock.IsPaused()) end },
     { separator = true },

@@ -39,6 +39,11 @@ function C.Create()
     function() return ST.db.Config.BigTimer == true end,
     function(v) ST.db.Config.BigTimer = v end)
 
+  AddCheck("Always show the next money milestone",
+    "Pin the next 'Money Acquired' step as the last upcoming row. Off = only within 20% of the step.",
+    function() return ST.db.Config.AlwaysShowMoney == true end,
+    function(v) ST.db.Config.AlwaysShowMoney = v end)
+
   local btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   btn:SetSize(160, 22)
   btn:SetPoint("TOPLEFT", lastWidget, "BOTTOMLEFT", 0, -16)

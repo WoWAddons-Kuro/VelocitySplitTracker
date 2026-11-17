@@ -13,6 +13,7 @@ local DEFAULT_CONFIG = {
   TimesSide = "RIGHT",   -- "LEFT" | "RIGHT"
   Clock = "ACTIVE",      -- "ACTIVE" | "PLAYED"
   BigTimer = false,      -- large LiveSplit-style timer with tenths; off = compact row
+  AlwaysShowMoney = true, -- pin the next money milestone as the last upcoming row
   RowsDone = 4,
   RowsUpcoming = 6,
   Scale = 1,
