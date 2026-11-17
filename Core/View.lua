@@ -149,8 +149,9 @@ function V.Upcoming(limit)
       local frac = total / nextStep
       if frac >= (cfg.Attention_NearPct or D.Attention_NearPct) or ST.Milestones.GoldRecentlyProgressed() then
         local key = D.Key("gold", nextStep)
-        out[#out + 1] = { Key = key, Axis = "gold", Icon = D.GoldIcon, Label = D.FormatCopper(nextStep, true) .. " acquired", Best = ST.Compare.Best(key),
-          Progress = frac, ProgressText = D.FormatCopper(total) .. " / " .. D.FormatCopper(nextStep, true),
+        -- "Money Acquired - 10s"; the bar shows how close, the short current amount sits after it.
+        out[#out + 1] = { Key = key, Axis = "gold", Icon = D.GoldIcon, Label = "Money Acquired - " .. D.FormatCopper(nextStep, true), Best = ST.Compare.Best(key),
+          Progress = frac, ProgressText = D.FormatCopper(total, true),
           Sticky = frac >= (cfg.Attention_NearPct or D.Attention_NearPct), LastProgress = ST.Milestones.Attention().Gold }
       end
     end

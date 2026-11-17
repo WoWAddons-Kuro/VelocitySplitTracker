@@ -298,7 +298,7 @@ function M.CreatureName(id) return nameByCreatureID[id] end
 ------------------------------------------------------------------------
 local lastMoney = nil
 
-local function GoldStepLabel(copper) return D.FormatCopper(copper, true) .. " acquired" end
+local function GoldStepLabel(copper) return "Money Acquired - " .. D.FormatCopper(copper, true) end
 
 -- Current cumulative total; seeds from the purse on first sight of an existing character.
 function M.GoldAcquired()
