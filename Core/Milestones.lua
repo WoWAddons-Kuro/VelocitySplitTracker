@@ -251,7 +251,9 @@ function M.Init()
   -- Event names differ between client flavours; an unknown one must never abort Init
   -- (it would leave the OnEvent handler unset and silently kill all tracking).
   local function Reg(event)
+    local outer = U.Phase("Reg:" .. event)
     local ok = pcall(frame.RegisterEvent, frame, event)
+    U.PhaseEnd(outer)
     if not ok then U.Print("|cffaaaaaa(event %s not on this client; skipped)|r", event) end
   end
   Reg("PLAYER_LEVEL_UP")
@@ -269,9 +271,11 @@ function M.Init()
   Reg("PLAYER_ENTERING_WORLD")
   Reg("PLAYER_XP_UPDATE")
   -- First-mount detection: a slow poll instead of UNIT_AURA (which fires constantly in combat).
+  local o = U.Phase("NewTicker")
   C_Timer.NewTicker(3, function()
     if IsMounted and IsMounted() and not ST.Record.Has("mounted:1") then ST.Record.Hit("mounted:1", "First Mount") end
   end)
+  U.PhaseEnd(o); o = U.Phase("SetScript")
   frame:SetScript("OnEvent", function(_, event, ...)
     local outer = U.Phase("Milestones.event:" .. event)
     if event == "PLAYER_LEVEL_UP" then
@@ -320,4 +324,5 @@ function M.Init()
     end
     U.PhaseEnd(outer)
   end)
+  U.PhaseEnd(o)
 end
