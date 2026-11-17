@@ -52,8 +52,10 @@ end
 
 -- Lay a row out for the configured side. Times block = [delta][time].
 -- The icon column is always reserved so labels line up whether or not a row has an icon.
+-- Rows without a delta (upcoming rows) let the label run over the empty delta column.
 local function LayoutRow(row, timesLeft)
   local p = T.Padding
+  local hasDelta = (row.delta:GetText() or "") ~= ""
   row.icon:ClearAllPoints(); row.label:ClearAllPoints(); row.time:ClearAllPoints(); row.delta:ClearAllPoints()
   row.time:SetWidth(58)
   row.delta:SetWidth(48)
@@ -68,7 +70,7 @@ local function LayoutRow(row, timesLeft)
     row.label:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
     row.time:SetPoint("RIGHT", row, "RIGHT", -p, 0)
     row.delta:SetPoint("RIGHT", row.time, "LEFT", -4, 0)
-    row.label:SetPoint("RIGHT", row.delta, "LEFT", -4, 0)
+    row.label:SetPoint("RIGHT", hasDelta and row.delta or row.time, "LEFT", -4, 0)
   end
 end
 
