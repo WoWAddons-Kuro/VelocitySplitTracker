@@ -90,7 +90,12 @@ function V.Upcoming(limit)
   local step = cfg.SkillStep or D.SkillStep
   for _, s in ipairs(ST.Milestones.Skills()) do
     local nextStep = (math.floor(s.Rank / step) + 1) * step
-    local near = s.Rank / nextStep >= (cfg.Attention_NearPct or D.Attention_NearPct)
+    local nearPct = cfg.Attention_NearPct or D.Attention_NearPct
+    -- Sticky when within reach of EITHER goal: the next 50-step, or the trainer cap
+    -- (a capped profession stays visible until the cap is lifted by training).
+    local nearStep = s.Rank / nextStep >= nearPct
+    local nearCap  = s.Max and s.Max > 0 and s.Rank / s.Max >= nearPct
+    local near = nearStep or nearCap
     local active = ST.Milestones.SkillIsActive(s.Name)
     -- Not gated on the current trainer cap (s.Max): the cap rises with training, the
     -- milestone is still "next 50". Only the absolute skill ceiling applies.
