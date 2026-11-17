@@ -53,6 +53,28 @@ function C.Best(key)
   return best
 end
 
+-- Milestones of one axis that candidate runs reached, with best time <= maxTime, that the
+-- current character has NOT reached, soonest first. Used for time-based upcoming rows
+-- (areas, first-learn) where there is no progress metric of our own.
+function C.UpcomingByTime(axis, maxTime, limit)
+  local field = ClockField()
+  local me = ST.Record.Current()
+  local bestByKey, labelByKey = {}, {}
+  local prefix = axis .. ":"
+  for _, rec in ipairs(C.Candidates()) do
+    for key, m in pairs(rec.Milestones) do
+      if key:sub(1, #prefix) == prefix and not m.Inferred and m[field] and m[field] <= maxTime and not me.Milestones[key] then
+        if not bestByKey[key] or m[field] < bestByKey[key] then bestByKey[key] = m[field]; labelByKey[key] = m.Label end
+      end
+    end
+  end
+  local list = {}
+  for key, t in pairs(bestByKey) do list[#list + 1] = { Key = key, Best = t, Label = labelByKey[key] or key } end
+  table.sort(list, function(a, b) return a.Best < b.Best end)
+  while #list > (limit or 3) do table.remove(list) end
+  return list
+end
+
 -- Best level segment (level n-1 -> n) across candidates.
 function C.BestLevelSegment(n)
   local field = ClockField()

@@ -19,6 +19,7 @@ Core\Record.lua
 Core\Clock.lua
 Core\Compare.lua
 Core\Milestones.lua
+Core\Locations.lua
 Core\View.lua
 UI\Theme.lua
 UI\LiveWindow.lua

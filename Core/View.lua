@@ -169,6 +169,27 @@ function V.Upcoming(limit)
     end
   end
 
+  -- Manual location splits: the nearest unreached one, when within ShowWithinYards.
+  do
+    local entry, yards = ST.Locations.Nearest()
+    if entry then
+      out[#out + 1] = { Key = entry.Key, Axis = "loc", Label = "Reach " .. entry.Label, Best = ST.Compare.Best(entry.Key),
+        Progress = 1 - math.min(1, yards / ST.Locations.ShowWithinYards), ProgressText = string.format("%d yd", yards), Sticky = true }
+    end
+  end
+
+  -- Automatic area splits: a comparison run's area you have not entered yet shows once your
+  -- clock reaches Attention_TimeNearPct of their time (same rule as "Learn X").
+  do
+    local playedNow, activeNow = ST.Clock.Now()
+    local nowClock = (cfg.Clock == "PLAYED") and playedNow or activeNow
+    local timeNear = cfg.Attention_TimeNearPct or D.Attention_TimeNearPct
+    for _, cand in ipairs(ST.Compare.UpcomingByTime("area", nowClock / timeNear, 2)) do
+      out[#out + 1] = { Key = cand.Key, Axis = "area", Label = cand.Label, Best = cand.Best,
+        Progress = math.min(1, nowClock / cand.Best), Sticky = true }
+    end
+  end
+
   -- Priority: the level row stays first; everything else is ordered by most recent progress
   -- (sticky rows count as current), so what you just did is never cut off by the row cap.
   local levelRow = out[1] and out[1].Current and table.remove(out, 1) or nil

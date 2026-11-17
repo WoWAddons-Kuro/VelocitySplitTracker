@@ -293,6 +293,30 @@ end
 function M.CreatureName(id) return nameByCreatureID[id] end
 
 ------------------------------------------------------------------------
+-- Areas: first entry into a zone/subzone pair ("Enter Coldridge Pass"). Automatic, no setup.
+------------------------------------------------------------------------
+local lastAreaKey
+local function OnArea()
+  local zone = GetRealZoneText and GetRealZoneText() or nil
+  local sub = GetSubZoneText and GetSubZoneText() or nil
+  if not zone or zone == "" then return end
+  if sub == "" then sub = nil end
+  local name = sub or zone
+  local key = D.Key("area", (zone .. "/" .. (sub or "")):gsub("%s+", "_"))
+  if key == lastAreaKey then return end
+  lastAreaKey = key
+  -- The very first area seen after login is where you logged in, not somewhere you entered.
+  if M._areaBaselinePending then
+    M._areaBaselinePending = false
+    ST.Record.Hit(key, "Enter " .. name, { Inferred = true })
+    return
+  end
+  ST.Record.Hit(key, "Enter " .. name)
+end
+M._areaBaselinePending = true
+function M.CurrentAreaKey() return lastAreaKey end
+
+------------------------------------------------------------------------
 -- Gold acquired: cumulative positive money deltas (loot, vendor, quest rewards).
 -- Deltas while the mail or trade window is open are not "acquired" and are skipped.
 ------------------------------------------------------------------------
@@ -400,6 +424,8 @@ function M.Init()
   Reg("PLAYER_XP_UPDATE")
   Reg("PLAYER_TARGET_CHANGED")
   Reg("PLAYER_MONEY")
+  Reg("ZONE_CHANGED")
+  Reg("ZONE_CHANGED_INDOORS")
   -- First-mount detection: a slow poll instead of UNIT_AURA (which fires constantly in combat).
   local o = U.Phase("NewTicker")
   C_Timer.NewTicker(3, function()
@@ -438,7 +464,9 @@ function M.Init()
     elseif event == "CHAT_MSG_COMBAT_XP_GAIN" then
       OnXPGainLine((...))
     elseif event == "ZONE_CHANGED_NEW_AREA" then
-      OnZone()
+      OnZone(); OnArea()
+    elseif event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS" then
+      OnArea()
     elseif event == "PLAYER_XP_UPDATE" then
       if ST.Live then ST.Live.QueueRefresh() end
     elseif event == "PLAYER_TARGET_CHANGED" then
@@ -453,6 +481,7 @@ function M.Init()
         U.InPhase("CheckRiding", M.CheckRiding)
         U.InPhase("SeedMoney", M.SeedMoney)
         U.InPhase("OnZone", OnZone)
+        U.InPhase("OnArea", OnArea)   -- baseline: the login area is inferred, not entered
         U.PhaseEnd(o)
         if ST.Live then ST.Live.QueueRefresh() end
       end)

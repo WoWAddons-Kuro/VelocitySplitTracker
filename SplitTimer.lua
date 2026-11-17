@@ -188,6 +188,20 @@ f:SetScript("OnEvent", function(_, event, arg1, arg2)
         OnAccept = function() ST.Record.WipeCurrent(); U.Print("record wiped; fresh record started") end,
         timeout = 0, whileDead = true, hideOnEscape = true, showAlert = true,
       }
+      StaticPopupDialogs["SPLITTIMER_ADD_LOCATION"] = {
+        text = "Name this location split (blank = zone + coordinates). It triggers the first time a character of this start zone comes within 10 yards.",
+        button1 = "Add", button2 = CANCEL,
+        hasEditBox = true, maxLetters = 40,
+        OnShow = function(self)
+          local w = ST.Record.WhereNow()
+          self.editBox:SetText(w and w.Zone and (GetSubZoneText() ~= "" and GetSubZoneText() or w.Zone) or "")
+          self.editBox:HighlightText()
+        end,
+        OnAccept = function(self) ST.Locations.AddHere(self.editBox:GetText()); if ST.Live then ST.Live.Refresh() end end,
+        EditBoxOnEnterPressed = function(self) self:GetParent().button1:Click() end,
+        EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
+        timeout = 0, whileDead = true, hideOnEscape = true,
+      }
     end)
   elseif event == "PLAYER_LOGIN" then
     -- Each stage is isolated: a failure in one must not stop the window from being created,
@@ -199,6 +213,7 @@ f:SetScript("OnEvent", function(_, event, arg1, arg2)
     Stage("Record", ST.Record.Current)
     Stage("Clock", ST.Clock.Init)
     Stage("Milestones", ST.Milestones.Init)
+    Stage("Locations", ST.Locations.Init)
     Stage("Window", ST.Live.Create)   -- applies Config.Shown itself
   end
 end)

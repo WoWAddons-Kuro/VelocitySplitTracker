@@ -168,8 +168,27 @@ local function BuildTitle(f)
   title.level:SetPoint("RIGHT", lock, "LEFT", -4, 0)
   title.level:SetJustifyH("RIGHT")
 
+  -- Hamburger: three drawn lines (ARIALN has no glyph for it). Opens the same menu as right-click.
+  local menuBtn = CreateFrame("Button", nil, title)
+  menuBtn:SetSize(14, 14)
+  menuBtn:SetPoint("LEFT", T.Padding - 1, 0)
+  menuBtn:SetFrameLevel(title:GetFrameLevel() + 5)
+  menuBtn.lines = {}
+  for i = 1, 3 do
+    local ln = menuBtn:CreateTexture(nil, "ARTWORK")
+    ln:SetColorTexture(0.75, 0.75, 0.75, 1)
+    ln:SetSize(12, 2)
+    ln:SetPoint("TOP", 0, -(1 + (i - 1) * 4))
+    menuBtn.lines[i] = ln
+  end
+  menuBtn:SetAlpha(0.6)
+  menuBtn:SetScript("OnEnter", function() menuBtn:SetAlpha(1) end)
+  menuBtn:SetScript("OnLeave", function() menuBtn:SetAlpha(0.6) end)
+  menuBtn:SetScript("OnClick", function() L.ShowContextMenu(menuBtn) end)
+  title.menu = menuBtn
+
   title.zone = T.Text(title, T.TitleSize)
-  title.zone:SetPoint("LEFT", T.Padding, 0)
+  title.zone:SetPoint("LEFT", menuBtn, "RIGHT", 5, 0)
 
   -- Clickable class / pattern pieces: "Zone - Class v - Pattern v"
   local function Clickable(onClick)
@@ -464,8 +483,24 @@ end
 
 function L.ShowContextMenuImpl(anchor)
   local cfg = Cfg()
+  -- Location splits submenu content (manual "reach this point" splits for this start zone)
+  local locItems = {
+    { text = "Add location split here...", func = function() StaticPopup_Show("SPLITTIMER_ADD_LOCATION") end },
+  }
+  local locs = ST.Locations.List()
+  if #locs > 0 then
+    locItems[#locItems + 1] = { separator = true }
+    locItems[#locItems + 1] = { title = "Remove location split" }
+    for _, e in ipairs(locs) do
+      local key, label = e.Key, e.Label
+      locItems[#locItems + 1] = { text = label, func = function() ST.Locations.Remove(key); L.Refresh() end }
+    end
+  end
   T.ShowMenu(anchor, {
     { title = "SplitTimer" },
+    { text = "Add location split here...", func = function() StaticPopup_Show("SPLITTIMER_ADD_LOCATION") end },
+    { text = "Location splits...", func = function() T.ShowMenu(anchor, locItems) end },
+    { separator = true },
     { text = "Lock window", checked = cfg.Locked, func = function() L.SetLocked(not cfg.Locked) end },
     { text = "Times on left", checked = cfg.TimesSide == "LEFT", func = function() cfg.TimesSide = cfg.TimesSide == "LEFT" and "RIGHT" or "LEFT"; L.Refresh() end },
     { text = "Large timer (LiveSplit style)", checked = cfg.BigTimer == true, func = function() cfg.BigTimer = not cfg.BigTimer; L.Refresh() end },
