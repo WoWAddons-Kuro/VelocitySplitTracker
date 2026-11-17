@@ -87,6 +87,16 @@ local function Slash(msg)
   elseif cmd == "played" then ST.Clock.RequestPlayed()
   elseif cmd == "wipe" then StaticPopup_Show("SPLITTIMER_WIPE_RUN")
   elseif cmd == "key" then U.Print("record key: %s  (name-realm: %s)", tostring(ST.Record.KeyFor_Player()), U.CharacterKey())
+  elseif cmd == "mode" then
+    -- game mode carried by the run record (travels with exports so others can align categories)
+    local valid = { pve = true, pvp = true, ["hardcore-pve"] = true, ["hardcore-pvp"] = true }
+    if rest == "auto" or rest == "clear" then ST.db.Config.ModeOverride = nil
+    elseif valid[rest] then ST.db.Config.ModeOverride = rest
+    elseif rest ~= "" then U.Print("usage: /split mode pve | pvp | hardcore-pve | hardcore-pvp | auto") return end
+    local rec = ST.Record.Current()
+    rec.CharacterRun_Mode = ST.Record.DetectMode()
+    ST.Compare.Invalidate(); if ST.Live then ST.Live.Refresh() end
+    U.Print("game mode: %s%s  (realm '%s')", rec.CharacterRun_Mode, ST.db.Config.ModeOverride and "  [override]" or "  [detected]", GetRealmName() or "?")
   elseif cmd == "rows" then
     -- diagnostic: what the view is producing right now
     local V = ST.View.Build()

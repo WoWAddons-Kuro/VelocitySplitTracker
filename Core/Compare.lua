@@ -22,11 +22,13 @@ local function ClockField() return ST.db.Config.Clock == "PLAYED" and "Played" o
 -- Other characters that match the compare key.
 function C.Candidates()
   local key = C.Key()
-  local me = ST.Record.Current().CharacterRun_Key
+  local meRec = ST.Record.Current()
+  local me = meRec.CharacterRun_Key
   local includeNamedInDefault = ST.db.Config.Compare_IncludeNamedInDefault ~= false
+  local sameModeOnly = ST.db.Config.Compare_AnyMode ~= true   -- a PvP run is not a benchmark for a PvE run
   local out = {}
   for k, rec in pairs(ST.db.Characters) do
-    if k ~= me and rec.CharacterRun_StartZone == key.StartZone then
+    if k ~= me and rec.CharacterRun_StartZone == key.StartZone and (not sameModeOnly or (rec.CharacterRun_Mode or "unknown") == (meRec.CharacterRun_Mode or "unknown")) then
       local classOK = key.Class == "ANY" or rec.CharacterRun_ClassFile == key.Class
       local pat = rec.CharacterRun_Pattern or "default"
       local patOK = (pat == key.Pattern) or (key.Pattern == "default" and includeNamedInDefault)

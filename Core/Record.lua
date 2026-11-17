@@ -17,6 +17,30 @@ function R.KeyFor_Player()
   return U.CharacterKey()   -- fallback: legacy name-realm
 end
 
+-- Game mode of this character: "pve" | "pvp" | "hardcore-pve" | "hardcore-pvp" | "unknown".
+-- Sources, in order: Config.ModeOverride (wins); hardcore flag from the client when it has one;
+-- realm-name tokens as Forever writes them ("... Realm 1 PvE"); IsPVPServer if present.
+function R.DetectMode()
+  local override = ST.db.Config.ModeOverride
+  if override and override ~= "" then return override end
+  local hardcore = false
+  if C_GameRules and C_GameRules.IsHardcoreActive then
+    local ok, v = pcall(C_GameRules.IsHardcoreActive); hardcore = ok and v == true
+  elseif C_GameModeManager and C_GameModeManager.IsFeatureEnabled and Enum and Enum.GameModeFeatureSetting and Enum.GameModeFeatureSetting.Hardcore then
+    local ok, v = pcall(C_GameModeManager.IsFeatureEnabled, Enum.GameModeFeatureSetting.Hardcore); hardcore = ok and v == true
+  end
+  local realm = (GetRealmName() or ""):lower()
+  if realm:find("hardcore", 1, true) then hardcore = true end
+  local base
+  if realm:find("pvp", 1, true) then base = "pvp"
+  elseif realm:find("pve", 1, true) or realm:find("normal", 1, true) then base = "pve" end
+  if not base and IsPVPServer then
+    local ok, v = pcall(IsPVPServer); if ok and v ~= nil then base = v and "pvp" or "pve" end
+  end
+  if not base then return hardcore and "hardcore-unknown" or "unknown" end
+  return hardcore and ("hardcore-" .. base) or base
+end
+
 -- One-time migration: adopt a legacy Name-Realm record for this GUID if no GUID record exists.
 local function MigrateLegacyRecord(guidKey)
   local legacyKey = U.CharacterKey()
@@ -61,6 +85,7 @@ function R.Current()
       CharacterRun_Realm = GetRealmName(),
       CharacterRun_ClassFile = classFile,
       CharacterRun_Race = raceFile,
+      CharacterRun_Mode = R.DetectMode(),
       CharacterRun_StartZone = D.RaceStartZone[raceFile] or "Unknown",
       CharacterRun_Pattern = nil,
       CharacterRun_CreatedAt = time(),
@@ -74,6 +99,8 @@ function R.Current()
     ST.db.Characters[key] = rec
   end
   rec.CharacterRun_Level = UnitLevel("player")
+  -- Mode: fill in for records that pre-date this field; re-detect when it was unknown.
+  if not rec.CharacterRun_Mode or rec.CharacterRun_Mode:find("unknown", 1, true) then rec.CharacterRun_Mode = R.DetectMode() end
   -- Keep the display name current (records created before the two-name fix hold only "First").
   local display = U.CharacterDisplayName(); if display and display ~= "?" then rec.CharacterRun_Name = display end
   -- Self-heal: if the race wasn't in the table when first seen, try again each login.

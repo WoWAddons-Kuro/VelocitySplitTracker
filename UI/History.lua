@@ -346,7 +346,7 @@ end
 
 function H.CopyAsText(key)
   local rec = ST.db.Characters[key]; if not rec then return end
-  local parts = { string.format("%s %s %s %s L%s active=%s played=%s |", rec.CharacterRun_Name, rec.CharacterRun_StartZone, rec.CharacterRun_ClassFile, rec.CharacterRun_Pattern or "default", tostring(rec.CharacterRun_Level), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total)) }
+  local parts = { string.format("%s %s %s mode=%s %s L%s active=%s played=%s |", rec.CharacterRun_Name, rec.CharacterRun_StartZone, rec.CharacterRun_ClassFile, rec.CharacterRun_Mode or "unknown", rec.CharacterRun_Pattern or "default", tostring(rec.CharacterRun_Level), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total)) }
   for _, it in ipairs(MilestoneRows(rec)) do
     if not it.Inferred then parts[#parts + 1] = string.format("%s=%s", it.Label, U.FormatTime(it.Active)) end
   end
