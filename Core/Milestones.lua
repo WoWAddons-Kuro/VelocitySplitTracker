@@ -15,7 +15,6 @@ local M = ST.Milestones
 local questSnapshot = {}
 -- QuestRecent[] = questIDs ordered most-recently-progressed first
 M.QuestRecent = {}
-M.QuestTouchedAt = {}            -- questID -> GetTime() of last objective progress
 local questTitleCache = {}
 
 local function QuestTitle(questID)
@@ -61,19 +60,52 @@ local function Touch(questID)
   for i, id in ipairs(M.QuestRecent) do if id == questID then table.remove(M.QuestRecent, i) break end end
   table.insert(M.QuestRecent, 1, questID)
   while #M.QuestRecent > 10 do table.remove(M.QuestRecent) end
-  M.QuestTouchedAt[questID] = GetTime()
+  M.Attention().Quests[questID] = time()
   -- refresh once the recent window lapses so the row drops on time
   C_Timer.After((ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds) + 0.5, function() if ST.Live then ST.Live.QueueRefresh() end end)
 end
 
 -- Progressed within the attention window?
 function M.QuestRecentlyProgressed(questID)
-  local t = M.QuestTouchedAt[questID]
-  return t ~= nil and (GetTime() - t) < (ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds)
+  local t = M.Attention().Quests[questID]
+  return t ~= nil and (time() - t) < (ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds)
+end
+
+-- Persistent attention state lives on the character record (wall-clock stamps), so the
+-- 180 s / 45 s windows survive /reload and relog exactly as they were.
+function M.Attention()
+  local rec = ST.Record.Current()
+  rec.Attention = rec.Attention or {}
+  rec.Attention.Quests = rec.Attention.Quests or {}   -- questID -> time() of last progress
+  rec.Attention.Skills = rec.Attention.Skills or {}   -- skillName -> time() of last gain
+  rec.Attention.SkillRanks = rec.Attention.SkillRanks or {}  -- skillName -> last seen rank
+  return rec.Attention
+end
+
+-- On login: rebuild the in-memory recent-quest order from the persisted stamps and schedule
+-- refreshes for every window that is still open, so the display comes back as it was.
+function M.RestoreAttention()
+  local A = M.Attention()
+  local window = ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds
+  local now = time()
+  local list = {}
+  for questID, t in pairs(A.Quests) do
+    if now - t < window then list[#list + 1] = { questID, t } else A.Quests[questID] = nil end
+  end
+  table.sort(list, function(a, b) return a[2] > b[2] end)
+  M.QuestRecent = {}
+  for i = 1, math.min(10, #list) do M.QuestRecent[i] = list[i][1] end
+  for name, t in pairs(A.Skills) do if now - t >= window then A.Skills[name] = nil end end
+  -- one refresh when the soonest still-open window closes
+  local soonest
+  for _, t in pairs(A.Quests) do if not soonest or t < soonest then soonest = t end end
+  for _, t in pairs(A.Skills) do if not soonest or t < soonest then soonest = t end end
+  if soonest then C_Timer.After(math.max(0.5, soonest + window - now + 0.5), function() if ST.Live then ST.Live.QueueRefresh() end end) end
 end
 
 local firstScan = true
 function M.ScanQuestLog()
+  if firstScan then M.RestoreAttention() end
   local seen = {}
   EachQuest(function(questID, title, isComplete)
     seen[questID] = true
@@ -102,8 +134,6 @@ end
 -- Professions
 ------------------------------------------------------------------------
 -- Returns { { Name=, Rank=, Max= }, ... } for tracked skills.
-local skillRankSnapshot = {}     -- SkillName -> last seen rank
-M.SkillActiveUntil = {}          -- SkillName -> GetTime() until which it is shown as "active"
 local chatRank = {}              -- SkillName -> rank learned from CHAT_MSG_SKILL (API-independent)
 M.LastSkillAPI = "none"
 function M.Skills()
@@ -156,7 +186,8 @@ end
 
 function M.CheckSkills()
   local step = ST.db.Config.SkillStep or D.SkillStep
-  local now = GetTime()
+  local now = time()
+  local A = M.Attention()
   -- Baseline scan (login / no skill-up event pending): steps already passed are back-filled as
   -- Inferred, exactly like levels - they are not splits achieved now.
   local baseline = not M._skillEventPending
@@ -164,11 +195,11 @@ function M.CheckSkills()
     -- Any rank gain marks the skill "active" for a while so its next step shows in the window.
     -- A missing baseline counts as a gain too: if we are here because of a skill-up event,
     -- the very first observation IS the gain, and we must not silently swallow it.
-    local prev = skillRankSnapshot[s.Name]
+    local prev = A.SkillRanks[s.Name]
     if (prev ~= nil and s.Rank > prev) or (prev == nil and M._skillEventPending) then
-      M.SkillActiveUntil[s.Name] = now + (ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds)
+      A.Skills[s.Name] = now
     end
-    skillRankSnapshot[s.Name] = s.Rank
+    A.SkillRanks[s.Name] = s.Rank
     for n = step, s.Rank - (s.Rank % step), step do
       -- Only the step reached by THIS gain is a real split; anything older is inferred.
       local inferred = baseline or (prev ~= nil and n <= prev)
@@ -179,17 +210,19 @@ function M.CheckSkills()
 end
 
 function M.SkillIsActive(name)
-  local untilTime = M.SkillActiveUntil[name]
-  if untilTime and untilTime > GetTime() then return true end
-  if untilTime then M.SkillActiveUntil[name] = nil end
-  return false
+  local t = M.Attention().Skills[name]
+  return t ~= nil and (time() - t) < (ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds)
 end
 
 -- Earliest expiry among active skills (so the window can drop the row on time), or nil.
 function M.NextSkillExpiry()
   local soonest
-  for _, t in pairs(M.SkillActiveUntil) do if not soonest or t < soonest then soonest = t end end
-  return soonest
+  local window = ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds
+  for _, t in pairs(M.Attention().Skills) do
+    local untilTime = t + window
+    if untilTime > time() and (not soonest or untilTime < soonest) then soonest = untilTime end
+  end
+  return soonest  -- wall-clock time()
 end
 
 ------------------------------------------------------------------------
@@ -330,13 +363,13 @@ function M.Init()
     elseif event == "SKILL_LINES_CHANGED" or event == "CHAT_MSG_SKILL" then
       if event == "CHAT_MSG_SKILL" then
         local name = M.ParseSkillChat((...))
-        if name then M.SkillActiveUntil[name] = GetTime() + (ST.db.Config.SkillActiveSeconds or D.SkillActiveSeconds) end
+        if name then M.Attention().Skills[name] = time() end
         M._skillEventPending = true
       end
       M.CheckSkills(); if ST.Live then ST.Live.QueueRefresh() end
       -- drop the row again once the active window lapses
       local expiry = M.NextSkillExpiry()
-      if expiry then C_Timer.After(expiry - GetTime() + 0.5, function() if ST.Live then ST.Live.QueueRefresh() end end) end
+      if expiry then C_Timer.After(math.max(0.5, expiry - time() + 0.5), function() if ST.Live then ST.Live.QueueRefresh() end end) end
     elseif event == "SPELLS_CHANGED" or event == "LEARNED_SPELL_IN_TAB" or event == "LEARNED_SPELL_IN_SKILL_LINE" then
       M.CheckRiding()
     elseif event == "CHAT_MSG_COMBAT_XP_GAIN" then
