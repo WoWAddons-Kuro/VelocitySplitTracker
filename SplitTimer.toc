@@ -1,0 +1,22 @@
+## Interface: 16001
+## Title: SplitTimer
+## Notes: LiveSplit-style milestone timer for leveling: levels, key quests, kills, professions, riding. Compares against your best runs per start zone, class and route.
+## Author: Kuro
+## Version: dev
+## SavedVariables: SplitTimerDB
+## OptionalDeps: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0
+## IconTexture: Interface\Icons\INV_Misc_PocketWatch_01
+## X-Website: https://github.com/WoWAddons-Kuro/SplitTimer
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+Core\Util.lua
+Core\MockData.lua
+UI\Theme.lua
+UI\LiveWindow.lua
+UI\History.lua
+UI\Config.lua
+SplitTimer.lua
