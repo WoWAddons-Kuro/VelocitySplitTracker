@@ -141,6 +141,9 @@ function H.CreateIn(host)
   detail.btnCopy:SetPoint("LEFT", detail.btnClear, "RIGHT", 4, 0)
   detail.btnDelete = MakeButton(detail, "Delete run", 90, function() if selectedKey then StaticPopup_Show("SPLITTIMER_DELETE_RUN", selectedKey, nil, selectedKey) end end)
   detail.btnDelete:SetPoint("BOTTOMRIGHT", -8, 8)
+  -- Import a reference run (VOD splits, another player's export)
+  detail.btnImport = MakeButton(detail, "Import reference...", 130, function() ST.Reference.ShowImport() end)
+  detail.btnImport:SetPoint("RIGHT", detail.btnDelete, "LEFT", -8, 0)
 
   -- milestone table: scrollable, fixed columns
   detail.tableHeader = CreateFrame("Frame", nil, detail)
