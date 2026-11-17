@@ -44,13 +44,23 @@ function V.Done(limit)
     item.Gold = item.Best ~= nil and item.Time < item.Best
     out[#out + 1] = item
   end
-  -- Guarantee the previous level row (no time if it was inferred / before the addon).
+  -- Guarantee the previous level row. It is exempt from the done-window: use the recorded
+  -- milestone (real time) whenever one exists; only fall back to a timeless placeholder when
+  -- the level was inferred / reached before the addon was installed.
   local level = UnitLevel("player")
   local prevKey = D.Key("level", level)
   local present = false
   for _, it in ipairs(out) do if it.Key == prevKey then present = true break end end
   if not present and level >= 1 then
-    table.insert(out, 1, { Key = prevKey, Axis = "level", Label = "Level " .. level, Time = nil, Best = ST.Compare.Best(prevKey), Inferred = true })
+    local m = rec.Milestones[prevKey]
+    local row = { Key = prevKey, Axis = "level", Label = "Level " .. level, Best = ST.Compare.Best(prevKey) }
+    if m and not m.Inferred then
+      row.Time = m[field]
+      row.Gold = row.Best ~= nil and row.Time < row.Best
+    else
+      row.Inferred = true
+    end
+    table.insert(out, 1, row)
     while #out > limit do table.remove(out, 2) end   -- keep the level row, drop the oldest other
   end
   return out
