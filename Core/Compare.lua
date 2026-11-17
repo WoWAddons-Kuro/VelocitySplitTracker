@@ -10,8 +10,11 @@ local C = ST.Compare
 function C.Key()
   local rec = ST.Record.Current()
   local cfg = ST.db.Config
+  -- StartZone is user-selectable too: a specific zone, or "ANY" (e.g. a Skyborne racing a
+  -- Dun Morogh reference). Defaults to the character's own; legacy CompareAnyZone = "ANY".
+  local zone = cfg.CompareZone or (cfg.CompareAnyZone and "ANY") or rec.CharacterRun_StartZone
   return {
-    StartZone = rec.CharacterRun_StartZone,
+    StartZone = zone,
     Class = cfg.CompareClass or rec.CharacterRun_ClassFile,   -- "ANY" or a class file
     Pattern = cfg.ComparePattern or "default",
   }
@@ -26,10 +29,9 @@ function C.Candidates()
   local me = meRec.CharacterRun_Key
   local includeNamedInDefault = ST.db.Config.Compare_IncludeNamedInDefault ~= false
   local sameModeOnly = ST.db.Config.Compare_AnyMode ~= true   -- a PvP run is not a benchmark for a PvE run
-  local anyZone = ST.db.Config.CompareAnyZone == true         -- e.g. a human paladin reference vs a dwarf run
   local out = {}
   for k, rec in pairs(ST.db.Characters) do
-    local zoneOK = anyZone or rec.CharacterRun_StartZone == key.StartZone
+    local zoneOK = key.StartZone == "ANY" or rec.CharacterRun_StartZone == key.StartZone
     -- reference runs with unknown mode are allowed through the mode filter (their mode is often not stated)
     local modeOK = not sameModeOnly or (rec.CharacterRun_Mode or "unknown") == (meRec.CharacterRun_Mode or "unknown") or (rec.CharacterRun_Reference and (rec.CharacterRun_Mode or "unknown") == "unknown")
     if k ~= me and zoneOK and modeOK then
@@ -98,11 +100,22 @@ function C.BestLevelSegment(n)
 end
 
 -- Options for the title dropdowns.
+function C.ZoneOptions()
+  local set = { [ST.Record.Current().CharacterRun_StartZone or "Unknown"] = true }
+  for _, rec in pairs(ST.db.Characters) do if rec.CharacterRun_StartZone then set[rec.CharacterRun_StartZone] = true end end
+  local list = { "ANY" }
+  for z in pairs(set) do list[#list + 1] = z end
+  table.sort(list, function(a, b) if a == "ANY" then return true elseif b == "ANY" then return false end return a < b end)
+  return list
+end
+
+function C.ZoneLabel(zone) return zone == "ANY" and "Any zone" or zone end
+
 function C.ClassOptions()
-  local zone = ST.Record.Current().CharacterRun_StartZone
+  local zone = C.Key().StartZone
   local set = { [ST.Record.Current().CharacterRun_ClassFile] = true }
   for _, rec in pairs(ST.db.Characters) do
-    if rec.CharacterRun_StartZone == zone then set[rec.CharacterRun_ClassFile] = true end
+    if zone == "ANY" or rec.CharacterRun_StartZone == zone then set[rec.CharacterRun_ClassFile] = true end
   end
   local list = { "ANY" }
   for c in pairs(set) do list[#list + 1] = c end
@@ -111,10 +124,10 @@ function C.ClassOptions()
 end
 
 function C.PatternOptions()
-  local zone = ST.Record.Current().CharacterRun_StartZone
+  local zone = C.Key().StartZone
   local set = {}
   for _, rec in pairs(ST.db.Characters) do
-    if rec.CharacterRun_StartZone == zone and rec.CharacterRun_Pattern then set[rec.CharacterRun_Pattern] = true end
+    if (zone == "ANY" or rec.CharacterRun_StartZone == zone) and rec.CharacterRun_Pattern then set[rec.CharacterRun_Pattern] = true end
   end
   local list = { "default" }
   for p in pairs(set) do list[#list + 1] = p end

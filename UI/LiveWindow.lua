@@ -204,9 +204,6 @@ local function BuildTitle(f)
   menuBtn:SetScript("OnClick", function() L.ShowContextMenu(menuBtn) end)
   title.menu = menuBtn
 
-  title.zone = T.Text(title, T.TitleSize)
-  title.zone:SetPoint("LEFT", menuBtn, "RIGHT", 5, 0)
-
   -- Clickable class / pattern pieces: "Zone - Class v - Pattern v"
   local function Clickable(onClick)
     local b = CreateFrame("Button", nil, title)
@@ -226,6 +223,11 @@ local function BuildTitle(f)
     d:SetText("-")
     return d
   end
+  -- Zone is a dropdown too: a specific start zone or "Any zone". Bright, since it reads as the title.
+  title.zone = Clickable(function(b) L.ShowZoneMenu(b) end)
+  title.zone:SetPoint("LEFT", menuBtn, "RIGHT", 5, 0)
+  title.zone:SetScript("OnLeave", function() T.SetColour(title.zone.text, T.Colour.Text) end)
+  T.SetColour(title.zone.text, T.Colour.Text)
   title.dash0 = Dash()
   title.dash0:SetPoint("LEFT", title.zone, "RIGHT", 4, 0)
   title.class = Clickable(function(b) L.ShowClassMenu(b) end)
@@ -352,7 +354,7 @@ function L.Refresh()
 
   -- title
   local tt = frame.title
-  tt.zone:SetText(V.CompareKey.StartZone)
+  tt.zone:SetLabel(ST.Compare.ZoneLabel(V.CompareKey.StartZone))
   tt.class:SetLabel(V.CompareKey.Class)
   tt.pattern:SetLabel(V.CompareKey.Pattern)
   tt.clock:SetLabel(cfg.Clock == "PLAYED" and "Played" or "Active")
@@ -513,6 +515,17 @@ function L.ShowClassMenu(anchor)
   T.ShowMenu(anchor, items)
 end
 
+function L.ShowZoneMenu(anchor)
+  local items = {}
+  local current = ST.Compare.Key().StartZone
+  local mine = ST.Record.Current().CharacterRun_StartZone
+  for _, z in ipairs(ST.Compare.ZoneOptions()) do
+    items[#items + 1] = { text = ST.Compare.ZoneLabel(z) .. (z == mine and "  (this character)" or ""), checked = (current == z),
+      func = function() Cfg().CompareZone = (z ~= mine) and z or nil; Cfg().CompareAnyZone = nil; ST.Compare.Invalidate(); L.Refresh() end }
+  end
+  T.ShowMenu(anchor, items)
+end
+
 function L.ShowPatternMenu(anchor)
   local items = {}
   local current = ST.Compare.Key().Pattern
@@ -558,7 +571,6 @@ function L.ShowContextMenuImpl(anchor)
     { text = "Large timer (LiveSplit style)", checked = cfg.BigTimer == true, func = function() cfg.BigTimer = not cfg.BigTimer; L.Refresh() end },
     { text = "Always show next money milestone", checked = cfg.AlwaysShowMoney == true, func = function() cfg.AlwaysShowMoney = not cfg.AlwaysShowMoney; L.Refresh() end },
     { text = "Show Played clock", checked = cfg.Clock == "PLAYED", func = function() cfg.Clock = cfg.Clock == "PLAYED" and "ACTIVE" or "PLAYED"; ST.Compare.Invalidate(); L.Refresh() end },
-    { text = "Compare across start zones", checked = cfg.CompareAnyZone == true, func = function() cfg.CompareAnyZone = not cfg.CompareAnyZone; ST.Compare.Invalidate(); L.Refresh() end },
   }
   -- Section 3: windows.
   local windows = {
