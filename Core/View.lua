@@ -116,7 +116,7 @@ function V.Upcoming(limit)
       local capFraction = (s.Max and s.Max < nextStep) and (s.Max / nextStep) or nil
       -- Where the next tier becomes trainable (50 / 125 / 200), if still ahead and on this bar.
       local trainAt = D.SkillTrainAt(s.Max)
-      local trainFraction = (trainAt and s.Rank < trainAt and trainAt <= nextStep) and (trainAt / nextStep) or nil
+      local trainFraction = (trainAt and trainAt <= nextStep) and (trainAt / nextStep) or nil
       out[#out + 1] = { Key = key, Axis = "skill", Icon = D.SkillIcon[s.Name], Label = s.Name .. " " .. nextStep, Best = ST.Compare.Best(key),
         Progress = s.Rank / nextStep, ProgressText = s.Rank .. "/" .. nextStep, Active = active,
         CapFraction = capFraction, CapText = capFraction and tostring(s.Max) or nil,

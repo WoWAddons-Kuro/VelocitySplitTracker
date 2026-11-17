@@ -129,9 +129,11 @@ local function FillUpcomingRow(row, item, width)
   else
     row.capBand:Hide(); row.capTick:Hide()
   end
-  -- Train tick: medium-height line where the next tier becomes trainable.
+  -- Train tick: medium-height line where the next tier becomes trainable. Stays visible after
+  -- you pass it (faint) as a reminder that training is available.
   if item.TrainFraction and item.TrainFraction < 1 then
     local tx = width * item.TrainFraction
+    row.trainTick:SetAlpha(item.Progress and item.Progress >= item.TrainFraction and 0.45 or 0.9)
     row.trainTick:ClearAllPoints()
     row.trainTick:SetPoint("TOP", row, "TOPLEFT", tx, -3)
     row.trainTick:SetPoint("BOTTOM", row, "BOTTOMLEFT", tx, 3)
