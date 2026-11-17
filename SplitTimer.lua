@@ -11,6 +11,7 @@ local DEFAULT_CONFIG = {
   Locked = false,
   TimesSide = "RIGHT",   -- "LEFT" | "RIGHT"
   Clock = "ACTIVE",      -- "ACTIVE" | "PLAYED"
+  BigTimer = false,      -- large LiveSplit-style timer with tenths; off = compact row
   RowsDone = 4,
   RowsUpcoming = 4,
   Scale = 1,

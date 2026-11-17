@@ -185,16 +185,34 @@ local function BuildTimer(f)
   local area = CreateFrame("Frame", nil, f)
   area:SetHeight(T.TimerHeight)
   area.big = T.Text(area, T.TimerSize)
-  area.big:SetPoint("RIGHT", -T.Padding, 2)
   area.big:SetJustifyH("RIGHT")
-  area.tenths = T.Text(area, math.floor(T.TimerSize * 0.6))
   area.secondary = T.Text(area, T.FontSize - 2)
-  area.secondary:SetPoint("BOTTOMRIGHT", -T.Padding, 1)
-  area.secondary:SetJustifyH("RIGHT")
   T.SetColour(area.secondary, T.Colour.TextDim)
   area.sepTop = T.Separator(f)
   area.sepTop:SetPoint("TOPLEFT", area, "TOPLEFT"); area.sepTop:SetPoint("TOPRIGHT", area, "TOPRIGHT")
   return area
+end
+
+-- Large LiveSplit-style block (tenths, two lines) or a compact single row.
+function L.LayoutTimer(big)
+  local area = frame.timer
+  if area.isBig == big then return end
+  area.isBig = big
+  area.lastPrimaryTenths = nil   -- force text rebuild in the new format
+  area.big:ClearAllPoints(); area.secondary:ClearAllPoints()
+  if big then
+    area:SetHeight(T.TimerHeight)
+    area.big:SetFont(T.Font, T.TimerSize, "")
+    area.big:SetPoint("RIGHT", -T.Padding, 2)
+    area.secondary:SetPoint("BOTTOMRIGHT", -T.Padding, 1)
+    area.secondary:SetJustifyH("RIGHT")
+  else
+    area:SetHeight(T.RowHeight)
+    area.big:SetFont(T.Font, T.FontSize + 1, "")
+    area.big:SetPoint("RIGHT", -T.Padding, 0)
+    area.secondary:SetPoint("LEFT", T.Padding, 0)
+    area.secondary:SetJustifyH("LEFT")
+  end
 end
 
 local function BuildFooter(f)
@@ -307,9 +325,11 @@ function L.Refresh()
   end
 
   -- timer + footer
+  local big = cfg.BigTimer == true
+  L.LayoutTimer(big)
   frame.timer:ClearAllPoints()
   frame.timer:SetPoint("TOPLEFT", 0, y); frame.timer:SetPoint("TOPRIGHT", 0, y)
-  y = y - T.TimerHeight
+  y = y - (big and T.TimerHeight or T.RowHeight)
   frame.footer:ClearAllPoints()
   frame.footer:SetPoint("TOPLEFT", 0, y); frame.footer:SetPoint("TOPRIGHT", 0, y)
   y = y - T.FooterHeight
@@ -331,10 +351,11 @@ function L.UpdateTimer(V)
     primary, secondaryLabel, secondary = active, "played", played
   end
   -- Only rebuild strings when the displayed value actually changes (keeps per-frame garbage near zero).
-  local primaryTenths = math.floor(primary * 10)
+  local big = cfg.BigTimer == true
+  local primaryTenths = big and math.floor(primary * 10) or math.floor(primary)
   if primaryTenths ~= frame.timer.lastPrimaryTenths then
     frame.timer.lastPrimaryTenths = primaryTenths
-    frame.timer.big:SetText(U.FormatTime(primary, true))
+    frame.timer.big:SetText(U.FormatTime(primary, big))
   end
   local running = ST.Clock.IsRunning()
   local reason = ST.Clock.ForcedStop() or (not running and "idle") or nil
@@ -401,6 +422,7 @@ function L.ShowContextMenu(anchor)
     { title = "SplitTimer" },
     { text = "Lock window", checked = cfg.Locked, func = function() L.SetLocked(not cfg.Locked) end },
     { text = "Times on left", checked = cfg.TimesSide == "LEFT", func = function() cfg.TimesSide = cfg.TimesSide == "LEFT" and "RIGHT" or "LEFT"; L.Refresh() end },
+    { text = "Large timer (LiveSplit style)", checked = cfg.BigTimer == true, func = function() cfg.BigTimer = not cfg.BigTimer; L.Refresh() end },
     { text = "Show Played clock", checked = cfg.Clock == "PLAYED", func = function() cfg.Clock = cfg.Clock == "PLAYED" and "ACTIVE" or "PLAYED"; ST.Compare.Invalidate(); L.Refresh() end },
     { text = ST.Clock.IsPaused() and "Resume active clock" or "Pause active clock", func = function() ST.Clock.SetPaused(not ST.Clock.IsPaused()) end },
     { separator = true },

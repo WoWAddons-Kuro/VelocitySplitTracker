@@ -21,9 +21,27 @@ function C.Create()
   sub:SetWidth(560); sub:SetJustifyH("LEFT")
   sub:SetText("Options and the milestone plan editor will live here. While this panel is open the Active clock is paused.")
 
+  -- Checkbox helper: label + getter/setter against ST.db.Config
+  local lastWidget = sub
+  local function AddCheck(label, tooltip, get, set)
+    local cb = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
+    cb:SetPoint("TOPLEFT", lastWidget, "BOTTOMLEFT", 0, -10)
+    cb.Text:SetText(label)
+    cb.tooltipText = tooltip
+    cb:SetScript("OnShow", function() cb:SetChecked(get()) end)
+    cb:SetScript("OnClick", function() set(cb:GetChecked() and true or false); if ST.Live then ST.Live.Refresh() end end)
+    lastWidget = cb
+    return cb
+  end
+
+  AddCheck("Large timer (LiveSplit style, with tenths)",
+    "Show the big two-line timer with tenths of a second. Off = a compact single row.",
+    function() return ST.db.Config.BigTimer == true end,
+    function(v) ST.db.Config.BigTimer = v end)
+
   local btn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
   btn:SetSize(160, 22)
-  btn:SetPoint("TOPLEFT", sub, "BOTTOMLEFT", 0, -16)
+  btn:SetPoint("TOPLEFT", lastWidget, "BOTTOMLEFT", 0, -16)
   btn:SetText("Toggle split window")
   btn:SetScript("OnClick", function() ST.Live.Toggle() end)
 
