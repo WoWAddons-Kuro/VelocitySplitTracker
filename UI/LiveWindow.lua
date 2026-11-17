@@ -31,6 +31,12 @@ local function CreateRow(parent)
   row.progress:SetPoint("BOTTOMLEFT")
   row.progress:SetWidth(1)
   row.progress:Hide()
+  -- cap overlay (profession rows): muted red band + bright tick where the trainer cap sits
+  row.capBand = T.Texture(row, T.Colour.CapLocked, "BORDER")
+  row.capBand:Hide()
+  row.capTick = T.Texture(row, T.Colour.CapTick, "ARTWORK")
+  row.capTick:SetWidth(2)
+  row.capTick:Hide()
   row.icon = row:CreateTexture(nil, "ARTWORK")
   row.icon:SetSize(T.RowHeight - 6, T.RowHeight - 6)
   row.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
@@ -103,6 +109,20 @@ local function FillUpcomingRow(row, item, width)
     row.progress:Show()
   else
     row.progress:Hide()
+  end
+  -- Locked band: the stretch between the trainer cap and the goal, with a tick at the cap.
+  if item.CapFraction and item.CapFraction < 1 then
+    local capX = width * item.CapFraction
+    row.capBand:ClearAllPoints()
+    row.capBand:SetPoint("TOPLEFT", row, "TOPLEFT", capX, 0)
+    row.capBand:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 0)
+    row.capBand:Show()
+    row.capTick:ClearAllPoints()
+    row.capTick:SetPoint("TOPLEFT", row, "TOPLEFT", capX - 1, 0)
+    row.capTick:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", capX - 1, 0)
+    row.capTick:Show()
+  else
+    row.capBand:Hide(); row.capTick:Hide()
   end
 end
 

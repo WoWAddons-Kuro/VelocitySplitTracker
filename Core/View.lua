@@ -96,8 +96,11 @@ function V.Upcoming(limit)
     -- milestone is still "next 50". Only the absolute skill ceiling applies.
     if nextStep <= D.SkillCeiling and (near or active) then
       local key = D.Key("skill", s.Name, nextStep)
+      -- Part of the goal above the current trainer cap is not reachable until trained.
+      local capFraction = (s.Max and s.Max < nextStep) and (s.Max / nextStep) or nil
       out[#out + 1] = { Key = key, Axis = "skill", Icon = D.SkillIcon[s.Name], Label = s.Name .. " " .. nextStep, Best = ST.Compare.Best(key),
-        Progress = s.Rank / nextStep, ProgressText = s.Rank .. "/" .. nextStep, Active = active }
+        Progress = s.Rank / nextStep, ProgressText = s.Rank .. "/" .. nextStep, Active = active,
+        CapFraction = capFraction, CapText = capFraction and tostring(s.Max) or nil }
     end
   end
 
