@@ -85,7 +85,7 @@ local function Slash(msg)
   elseif cmd == "played" then ST.Clock.RequestPlayed()
   elseif cmd == "skills" then
     -- diagnostic: which profession API path is in use and what it returns
-    local api = (GetProfessions and GetProfessionInfo) and "GetProfessions" or ((GetNumSkillLines and GetSkillLineInfo) and "GetSkillLineInfo" or "none")
+    local api = string.format("GetSkillLineInfo=%s GetProfessions=%s", tostring(GetSkillLineInfo ~= nil), tostring(GetProfessions ~= nil))
     local list = ST.Milestones.Skills()
     U.Print("skill API: %s, tracked skills found: %d", api, #list)
     for _, s in ipairs(list) do

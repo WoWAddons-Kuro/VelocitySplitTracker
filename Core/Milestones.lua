@@ -93,23 +93,50 @@ end
 -- Returns { { Name=, Rank=, Max= }, ... } for tracked skills.
 local skillRankSnapshot = {}     -- SkillName -> last seen rank
 M.SkillActiveUntil = {}          -- SkillName -> GetTime() until which it is shown as "active"
+local chatRank = {}              -- SkillName -> rank learned from CHAT_MSG_SKILL (API-independent)
+M.LastSkillAPI = "none"
 function M.Skills()
   local out = {}
+  local seen = {}
+  local function Add(name, rank, max)
+    if name and D.TrackedSkills[name] and not seen[name] then
+      seen[name] = true
+      out[#out + 1] = { Name = name, Rank = rank or chatRank[name] or 0, Max = max or 300 }
+    end
+  end
+  -- Try every API this client exposes; they do not all report Classic-data skill lines.
+  if GetNumSkillLines and GetSkillLineInfo then
+    M.LastSkillAPI = "GetSkillLineInfo"
+    for i = 1, GetNumSkillLines() do
+      local name, isHeader, _, rank, _, _, max = GetSkillLineInfo(i)
+      if not isHeader then Add(name, rank, max) end
+    end
+  end
   if GetProfessions and GetProfessionInfo then
+    if #out == 0 then M.LastSkillAPI = "GetProfessions" end
     local idx = { GetProfessions() }
     for _, i in pairs(idx) do
       if type(i) == "number" then
         local name, _, rank, max = GetProfessionInfo(i)
-        if name and D.TrackedSkills[name] then out[#out + 1] = { Name = name, Rank = rank, Max = max } end
+        Add(name, rank, max)
       end
     end
-  elseif GetNumSkillLines and GetSkillLineInfo then
-    for i = 1, GetNumSkillLines() do
-      local name, isHeader, _, rank, _, _, max = GetSkillLineInfo(i)
-      if name and not isHeader and D.TrackedSkills[name] then out[#out + 1] = { Name = name, Rank = rank, Max = max } end
-    end
   end
+  -- Last resort: skills we have only ever seen via the chat line.
+  for name, rank in pairs(chatRank) do if not seen[name] then M.LastSkillAPI = M.LastSkillAPI .. "+chat"; Add(name, rank, nil) end end
   return out
+end
+
+-- "Your skill in Fishing has increased to 12." -> name, rank. Works without any skill API.
+local skillPattern
+function M.ParseSkillChat(msg)
+  if not skillPattern then
+    local fmt = SKILL_RANK_UP or "Your skill in %s has increased to %d."
+    skillPattern = "^" .. fmt:gsub("%%s", "(.-)"):gsub("%%d", "(%%d+)"):gsub("%.$", "%%.?") .. "$"
+  end
+  local name, rank = msg:match(skillPattern)
+  if name then chatRank[name] = tonumber(rank) end
+  return name, tonumber(rank)
 end
 
 function M.CheckSkills()
@@ -247,6 +274,10 @@ function M.Init()
     elseif event == "QUEST_LOG_UPDATE" or event == "UNIT_QUEST_LOG_CHANGED" then
       QueueQuestScan()
     elseif event == "SKILL_LINES_CHANGED" or event == "CHAT_MSG_SKILL" then
+      if event == "CHAT_MSG_SKILL" then
+        local name = M.ParseSkillChat((...))
+        if name then M.SkillActiveUntil[name] = GetTime() + (ST.db.Config.SkillActiveSeconds or D.SkillActiveSeconds) end
+      end
       M.CheckSkills(); if ST.Live then ST.Live.QueueRefresh() end
       -- drop the row again once the active window lapses
       local expiry = M.NextSkillExpiry()
