@@ -87,6 +87,12 @@ local function Slash(msg)
   elseif cmd == "played" then ST.Clock.RequestPlayed()
   elseif cmd == "wipe" then StaticPopup_Show("SPLITTIMER_WIPE_RUN")
   elseif cmd == "key" then U.Print("record key: %s  (name-realm: %s)", tostring(ST.Record.KeyFor_Player()), U.CharacterKey())
+  elseif cmd == "rows" then
+    -- diagnostic: what the view is producing right now
+    local V = ST.View.Build()
+    U.Print("upcoming rows (%d):", #V.Upcoming)
+    for i, it in ipairs(V.Upcoming) do print(string.format("  %d. [%s] %s%s%s", i, it.Axis, it.Label, it.Sticky and "  sticky" or "", it.LastProgress and ("  progressed " .. (time() - it.LastProgress) .. "s ago") or "")) end
+    print(string.format("  cap=%s  AlwaysShowMoney=%s", tostring(ST.db.Config.RowsUpcoming), tostring(ST.db.Config.AlwaysShowMoney)))
   elseif cmd == "skills" then
     -- diagnostic: which profession API path is in use and what it returns
     local api = string.format("GetSkillLineInfo=%s GetProfessions=%s", tostring(GetSkillLineInfo ~= nil), tostring(GetProfessions ~= nil))

@@ -194,18 +194,32 @@ function V.Upcoming(limit)
     end
   end
 
-  -- Priority: the level row stays first; everything else is ordered by most recent progress
-  -- (sticky rows count as current), so what you just did is never cut off by the row cap.
+  -- Two groups. FIXED axes (professions, learn, riding, mounted, money) have bounded cardinality
+  -- and are NEVER capped. VARIABLE axes (quests, areas, kills, locations) compete for the capped
+  -- slots, ordered by most recent progress (sticky rows count as current).
+  local FIXED_AXES = { skill = true, learn = true, riding = true, mounted = true, gold = true }
   local levelRow = out[1] and out[1].Current and table.remove(out, 1) or nil
-  local nowWall = time()
+  local fixed, variable = {}, {}
   for _, it in ipairs(out) do
+    if FIXED_AXES[it.Axis] then fixed[#fixed + 1] = it else variable[#variable + 1] = it end
+  end
+  local nowWall = time()
+  for _, it in ipairs(variable) do
     if it.Sticky then it.SortKey = nowWall + 1 else it.SortKey = it.LastProgress or 0 end
   end
-  table.sort(out, function(a, b) if a.SortKey ~= b.SortKey then return a.SortKey > b.SortKey end return a.Key < b.Key end)
-  if levelRow then table.insert(out, 1, levelRow) end
-  while #out > limit do table.remove(out) end
-  -- Pinned money row: always last, outside the cap.
-  if moneyRow then out[#out + 1] = moneyRow end
+  table.sort(variable, function(a, b) if a.SortKey ~= b.SortKey then return a.SortKey > b.SortKey end return a.Key < b.Key end)
+  while #variable > limit do table.remove(variable) end
+  -- fixed rows: professions first (most recent gain first), then learn / riding
+  table.sort(fixed, function(a, b)
+    local pa, pb = (a.Axis == "skill") and 0 or 1, (b.Axis == "skill") and 0 or 1
+    if pa ~= pb then return pa < pb end
+    return (a.LastProgress or 0) > (b.LastProgress or 0)
+  end)
+  out = {}
+  if levelRow then out[#out + 1] = levelRow end
+  for _, it in ipairs(variable) do out[#out + 1] = it end
+  for _, it in ipairs(fixed) do out[#out + 1] = it end
+  if moneyRow then out[#out + 1] = moneyRow end   -- pinned last
   return out
 end
 
