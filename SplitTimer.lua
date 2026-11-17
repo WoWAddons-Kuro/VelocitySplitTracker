@@ -92,6 +92,19 @@ local function Slash(msg)
     for _, s in ipairs(list) do
       print(string.format("  %s %d/%d%s", s.Name, s.Rank or -1, s.Max or -1, ST.Milestones.SkillIsActive(s.Name) and "  (active)" or ""))
     end
+  elseif cmd == "ms" then
+    -- diagnostic: every recorded milestone for this character (key, clocks, inferred flag)
+    local rec = ST.Record.Current()
+    local keys = {}
+    for k in pairs(rec.Milestones) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return (rec.Milestones[a].Active or 0) < (rec.Milestones[b].Active or 0) end)
+    U.Print("%d milestones for %s (level %d):", #keys, rec.CharacterRun_Key, UnitLevel("player"))
+    for _, k in ipairs(keys) do
+      local m = rec.Milestones[k]
+      if rest == "" or k:find(rest, 1, true) then
+        print(string.format("  %-22s active %-9s played %-9s %s %s", k, U.FormatTime(m.Active), U.FormatTime(m.Played), m.Inferred and "|cff888888INFERRED|r" or "", m.Label or ""))
+      end
+    end
   elseif cmd == "cpu" then
     -- Top addons by CPU since last /reload. Needs: /console scriptProfile 1 + /reload.
     if GetCVar("scriptProfile") ~= "1" then
