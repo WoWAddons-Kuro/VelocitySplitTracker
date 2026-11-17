@@ -186,7 +186,7 @@ local questScanQueued = false
 local function QueueQuestScan()
   if questScanQueued then return end
   questScanQueued = true
-  C_Timer.After(0.5, function() questScanQueued = false; M.ScanQuestLog(); if ST.Live then ST.Live.Refresh() end end)
+  C_Timer.After(1.0, function() questScanQueued = false; M.ScanQuestLog(); if ST.Live then ST.Live.QueueRefresh() end end)
 end
 
 function M.Init()
@@ -203,7 +203,10 @@ function M.Init()
   frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
   frame:RegisterEvent("PLAYER_ENTERING_WORLD")
   frame:RegisterEvent("PLAYER_XP_UPDATE")
-  pcall(frame.RegisterUnitEvent, frame, "UNIT_AURA", "player")
+  -- First-mount detection: a slow poll instead of UNIT_AURA (which fires constantly in combat).
+  C_Timer.NewTicker(3, function()
+    if IsMounted and IsMounted() and not ST.Record.Has("mounted:1") then ST.Record.Hit("mounted:1", "First Mount") end
+  end)
   frame:SetScript("OnEvent", function(_, event, ...)
     if event == "PLAYER_LEVEL_UP" then
       local level = ...
@@ -221,19 +224,19 @@ function M.Init()
     elseif event == "QUEST_LOG_UPDATE" or event == "UNIT_QUEST_LOG_CHANGED" then
       QueueQuestScan()
     elseif event == "SKILL_LINES_CHANGED" or event == "CHAT_MSG_SKILL" then
-      M.CheckSkills(); if ST.Live then ST.Live.Refresh() end
-    elseif event == "SPELLS_CHANGED" or event == "LEARNED_SPELL_IN_TAB" or event == "UNIT_AURA" then
+      M.CheckSkills(); if ST.Live then ST.Live.QueueRefresh() end
+    elseif event == "SPELLS_CHANGED" or event == "LEARNED_SPELL_IN_TAB" then
       M.CheckRiding()
     elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
       OnCombatLog()
     elseif event == "ZONE_CHANGED_NEW_AREA" then
       OnZone()
     elseif event == "PLAYER_XP_UPDATE" then
-      if ST.Live then ST.Live.Refresh() end
+      if ST.Live then ST.Live.QueueRefresh() end
     elseif event == "PLAYER_ENTERING_WORLD" then
       C_Timer.After(3, function()
         M.ScanQuestLog(); M.CheckSkills(); M.CheckRiding(); OnZone()
-        if ST.Live then ST.Live.Refresh() end
+        if ST.Live then ST.Live.QueueRefresh() end
       end)
     end
   end)

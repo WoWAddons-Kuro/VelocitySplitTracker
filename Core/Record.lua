@@ -62,7 +62,7 @@ function R.Hit(key, label, extra)
     U.Print("%s  %s%s", label or key, U.FormatTime(active), deltaText)
   end
   ST.Clock.Activity()
-  if ST.Live then ST.Live.Refresh() end
+  if ST.Live then ST.Live.QueueRefresh() end
   return true
 end
 

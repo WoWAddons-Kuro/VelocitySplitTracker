@@ -330,21 +330,40 @@ function L.UpdateTimer(V)
   else
     primary, secondaryLabel, secondary = active, "played", played
   end
-  frame.timer.big:SetText(U.FormatTime(primary, true))
-  local reason = ST.Clock.ForcedStop()
-  local suffix = ""
-  if reason then suffix = "  |cffaaaaaa(" .. reason .. ")|r"
-  elseif not ST.Clock.IsRunning() then suffix = "  |cffaaaaaa(idle)|r" end
-  frame.timer.secondary:SetText(secondaryLabel .. " " .. U.FormatTime(secondary) .. suffix)
+  -- Only rebuild strings when the displayed value actually changes (keeps per-frame garbage near zero).
+  local primaryTenths = math.floor(primary * 10)
+  if primaryTenths ~= frame.timer.lastPrimaryTenths then
+    frame.timer.lastPrimaryTenths = primaryTenths
+    frame.timer.big:SetText(U.FormatTime(primary, true))
+  end
+  local running = ST.Clock.IsRunning()
+  local reason = ST.Clock.ForcedStop() or (not running and "idle") or nil
+  local secondaryWhole = math.floor(secondary)
+  if secondaryWhole ~= frame.timer.lastSecondaryWhole or reason ~= frame.timer.lastReason or secondaryLabel ~= frame.timer.lastSecondaryLabel then
+    frame.timer.lastSecondaryWhole, frame.timer.lastReason, frame.timer.lastSecondaryLabel = secondaryWhole, reason, secondaryLabel
+    local suffix = reason and ("  |cffaaaaaa(" .. reason .. ")|r") or ""
+    frame.timer.secondary:SetText(secondaryLabel .. " " .. U.FormatTime(secondary) .. suffix)
+  end
   local colour
   if ST.Record.Current().CharacterRun_Frozen then colour = T.Colour.Frozen
-  elseif not ST.Clock.IsRunning() then colour = T.Colour.Stopped
+  elseif not running then colour = T.Colour.Stopped
   else
     local done = (V and V.Done) or lastDone or {}
     local last = done[#done]
     colour = last and T.DeltaColour(last.Best and (last.Time - last.Best), last.Gold) or T.Colour.Text
   end
-  T.SetColour(frame.timer.big, colour)
+  if colour ~= frame.timer.lastColour then
+    frame.timer.lastColour = colour
+    T.SetColour(frame.timer.big, colour)
+  end
+end
+
+-- Coalesce bursts of refresh requests (kill -> XP update + quest log update + ...) into one rebuild.
+local refreshQueued = false
+function L.QueueRefresh()
+  if refreshQueued or not frame then return end
+  refreshQueued = true
+  C_Timer.After(0.25, function() refreshQueued = false; L.Refresh() end)
 end
 
 local acc = 0

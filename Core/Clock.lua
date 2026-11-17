@@ -49,7 +49,7 @@ local function OnTimePlayed(totalSeconds)
     rec.ActiveSeconds_Total = totalSeconds
   end
   ST.Record.ReconcileLevels()
-  if ST.Live then ST.Live.Refresh() end
+  if ST.Live then ST.Live.QueueRefresh() end
 end
 
 -- Ask the server without spamming chat with "Total time played".
