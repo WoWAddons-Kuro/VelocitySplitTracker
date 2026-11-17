@@ -5,7 +5,7 @@
 ## Version: dev
 ## SavedVariables: VelocitySplitTrackerDB, SplitTimerDB
 ## OptionalDeps: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0
-## IconTexture: Interface\Icons\Inv_helm_armor_pirateeyepatch_b_01_green
+## IconTexture: Interface\AddOns\VelocitySplitTracker\Assets\VelocitySplitTracker_Icon.tga
 ## X-Website: https://github.com/WoWAddons-Kuro/VelocitySplitTracker
 
 Libs\LibStub\LibStub.lua

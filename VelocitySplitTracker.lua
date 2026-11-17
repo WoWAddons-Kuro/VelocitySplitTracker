@@ -58,7 +58,7 @@ local function SetupMinimap()
   if not (LDB and Icon) then return end
   local obj = LDB:NewDataObject("Velocity", {
     type = "launcher",
-    icon = "Interface\\Icons\\Inv_helm_armor_pirateeyepatch_b_01_green",
+    icon = "Interface\\AddOns\\VelocitySplitTracker\\Assets\\VelocitySplitTracker_Icon.tga",
     OnClick = function(_, button)
       if button == "RightButton" then ST.DataWindow.Toggle()
       elseif button == "MiddleButton" then ST.Config.Open()
