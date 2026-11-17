@@ -474,15 +474,19 @@ function L.Refresh()
   -- (always when Config.ShowDeathsSoftcore, else only once > 0)
   local ft = frame.footer
   local mode = ST.Record.Current().CharacterRun_Mode or ""
+  ft.status:ClearAllPoints()
   if mode:find("hardcore", 1, true) then
     ft.status:SetText("Hardcore")
     T.SetColour(ft.status, T.Colour.Behind)
+    ft.status:SetPoint("CENTER", 0, 0)   -- text alone: true centre
     ft.status:Show(); ft.deathIcon:Hide()
   else
     local deaths = ST.Milestones.DeathCount()
     if deaths > 0 or cfg.ShowDeathsSoftcore ~= false then
       ft.status:SetText(tostring(deaths))
       T.SetColour(ft.status, deaths > 0 and T.Colour.Behind or T.Colour.TextDim)
+      -- icon (12) + gap (3) hang off the left of the text; shift right by half so the pair is centred
+      ft.status:SetPoint("CENTER", (12 + 3) / 2, 0)
       ft.status:Show(); ft.deathIcon:Show()
     else
       ft.status:Hide(); ft.deathIcon:Hide()
