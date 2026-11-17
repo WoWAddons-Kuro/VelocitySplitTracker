@@ -15,7 +15,6 @@ local TICK = 0.5
 -- Played
 local playedBase = nil          -- seconds from last TIME_PLAYED_MSG
 local playedBaseAt = nil        -- GetTime() when it arrived
-local suppressPlayedChat = false
 
 -- Active
 local activeRunning = false     -- accumulating right now
@@ -53,18 +52,10 @@ local function OnTimePlayed(totalSeconds)
 end
 
 -- Ask the server without spamming chat with "Total time played".
+-- (The chat line is left alone on purpose: overriding ChatFrame_DisplayTimePlayed taints the
+-- chat frame and produces "SplitTimer has been blocked from an action only available to the Blizzard UI".)
 function C.RequestPlayed()
-  suppressPlayedChat = true
   RequestTimePlayed()
-end
-
-if ChatFrame_DisplayTimePlayed then
-  hooksecurefunc("ChatFrame_DisplayTimePlayed", function() end)
-  local orig = ChatFrame_DisplayTimePlayed
-  ChatFrame_DisplayTimePlayed = function(...)
-    if suppressPlayedChat then suppressPlayedChat = false return end
-    return orig(...)
-  end
 end
 
 ------------------------------------------------------------------------
@@ -175,6 +166,6 @@ function C.Init()
   frame:SetScript("OnUpdate", function(_, elapsed) Tick(elapsed) end)
   -- Active starts stopped; the first real activity after login starts it.
   C_Timer.After(2, C.RequestPlayed)
-  -- Re-sync /played every 10 minutes to correct any drift.
-  C_Timer.NewTicker(600, C.RequestPlayed)
+  -- No periodic re-sync: each request prints "Total time played" to chat and we cannot
+  -- suppress that without tainting the chat frame. GetTime() accumulation drifts negligibly.
 end
