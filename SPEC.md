@@ -44,6 +44,7 @@ SplitTimerDB = {
       CharacterRun_Name       = "Kuro", CharacterRun_Realm = "Forever",
       CharacterRun_ClassFile  = "HUNTER",     -- select(2, UnitClass)
       CharacterRun_Race       = "NightElf",
+      CharacterRun_Mode       = "pve",        -- pve | pvp | hardcore-pve | hardcore-pvp | unknown; travels with exports so others can align categories. /split mode overrides.
       CharacterRun_StartZone  = "Teldrassil",  -- StartZone_Key, resolved once from race (table), fallback first zone seen
       CharacterRun_Pattern    = nil,          -- RunPattern_Name set by the player in History (nil = "default")
       CharacterRun_CreatedAt  = 1763300000,   -- time() at first sight
