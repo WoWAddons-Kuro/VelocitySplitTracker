@@ -555,7 +555,6 @@ function L.ShowContextMenuImpl(anchor)
     { title = "SplitTimer" },
     { text = "Add location split here...", func = function() StaticPopup_Show("SPLITTIMER_ADD_LOCATION") end },
     { text = "Location splits...", func = function() T.ShowMenu(anchor, locItems) end },
-    { text = "Import reference run...", func = function() ST.Reference.ShowImport() end },
     { text = "Compare across start zones", checked = cfg.CompareAnyZone == true, func = function() cfg.CompareAnyZone = not cfg.CompareAnyZone; ST.Compare.Invalidate(); L.Refresh() end },
     { separator = true },
     { text = "Lock window", checked = cfg.Locked, func = function() L.SetLocked(not cfg.Locked) end },
@@ -566,6 +565,7 @@ function L.ShowContextMenuImpl(anchor)
     { text = ST.Clock.IsPaused() and "Resume active clock" or "Pause active clock", func = function() ST.Clock.SetPaused(not ST.Clock.IsPaused()) end },
     { separator = true },
     { text = "History", func = function() ST.History.Toggle() end },
+    { text = "Import reference run...", func = function() ST.Reference.ShowImport() end },
     { text = "Settings", func = function() ST.Config.Open() end },
     { text = "Hide", func = function() L.Toggle() end },
   })
