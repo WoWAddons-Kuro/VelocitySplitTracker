@@ -9,6 +9,7 @@ ignore:
   - SPEC.md
   - tests
   - Assets/VelocitySplitTracker_AppIcon.png
+  - Assets/VelocitySplitTracker_AppIcon.jpg
   - .github
   - .gitignore
   - .pkgmeta
