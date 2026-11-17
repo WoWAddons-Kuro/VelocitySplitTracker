@@ -141,18 +141,20 @@ function V.Upcoming(limit)
     end
   end
 
-  -- Gold acquired: same attention rules (recent progress 180 s, >= 90 % sticky).
+  -- Money acquired: special case. Money is always "progressing", so the recent-progress rule
+  -- would keep this row up permanently. It only appears within Attention_MoneyNearPct of the
+  -- next step (>= 80 %) and is sticky from there until the step is hit.
   do
     local nextStep = ST.Milestones.NextGoldStep()
     if nextStep then
       local total = ST.Milestones.GoldAcquired()
       local frac = total / nextStep
-      if frac >= (cfg.Attention_NearPct or D.Attention_NearPct) or ST.Milestones.GoldRecentlyProgressed() then
+      if frac >= (cfg.Attention_MoneyNearPct or D.Attention_MoneyNearPct) then
         local key = D.Key("gold", nextStep)
         -- "Money Acquired - 10s"; the bar shows how close, the short current amount sits after it.
         out[#out + 1] = { Key = key, Axis = "gold", Icon = D.GoldIcon, Label = "Money Acquired - " .. D.FormatCopper(nextStep, true), Best = ST.Compare.Best(key),
           Progress = frac, ProgressText = D.FormatCopper(total, true),
-          Sticky = frac >= (cfg.Attention_NearPct or D.Attention_NearPct), LastProgress = ST.Milestones.Attention().Gold }
+          Sticky = true, LastProgress = ST.Milestones.Attention().Gold }
       end
     end
   end

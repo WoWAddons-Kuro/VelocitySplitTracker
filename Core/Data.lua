@@ -39,6 +39,9 @@ D.Attention_DoneSeconds = 45        -- a completed split stays in the done list 
 -- Time-based near rule for milestones without a progress metric (first-learn of a profession):
 -- show the row once the current clock is at/over this fraction of the comparison run's time.
 D.Attention_TimeNearPct = 0.80
+-- Money is always progressing, so it gets no recent-progress rule: the row appears only within
+-- this fraction of the next step and stays until the step is hit.
+D.Attention_MoneyNearPct = 0.80
 D.SkillNearPct, D.SkillActiveSeconds = D.Attention_NearPct, D.Attention_RecentSeconds  -- legacy names
 
 -- Gold acquired (cumulative copper from loot/vendor; mail and trade excluded), exponential steps.
