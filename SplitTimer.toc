@@ -21,8 +21,10 @@ Core\Compare.lua
 Core\Milestones.lua
 Core\Locations.lua
 Core\View.lua
+Core\Pivot.lua
 UI\Theme.lua
 UI\LiveWindow.lua
 UI\History.lua
+UI\DataWindow.lua
 UI\Config.lua
 SplitTimer.lua

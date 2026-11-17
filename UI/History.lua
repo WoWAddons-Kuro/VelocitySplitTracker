@@ -74,32 +74,15 @@ local function MakeButton(parent, text, width, onClick)
   return b
 end
 
-function H.Create()
+-- Build the History content into a host frame (a tab of the data window).
+function H.CreateIn(host)
   if frame then return frame end
-  frame = CreateFrame("Frame", "SplitTimerHistoryWindow", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
-  frame:SetSize(LIST_WIDTH + 24 + 360, 440)
-  frame:SetPoint("CENTER")
-  frame:SetMovable(true); frame:EnableMouse(true); frame:SetClampedToScreen(true)
-  frame:SetFrameStrata("DIALOG")
-  frame:RegisterForDrag("LeftButton")
-  frame:SetScript("OnDragStart", frame.StartMoving)
-  frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+  frame = CreateFrame("Frame", nil, host)
+  frame:SetAllPoints()
   frame:SetScript("OnShow", function() H.Refresh() end)
-  if frame.SetBackdrop then
-    frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1 })
-    frame:SetBackdropColor(0.06, 0.06, 0.06, 0.95)
-    frame:SetBackdropBorderColor(0.25, 0.25, 0.25, 1)
-  end
-  tinsert(UISpecialFrames, "SplitTimerHistoryWindow")
 
-  local close = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
-  close:SetPoint("TOPRIGHT", 2, 2)
-
-  frame.title = T.Text(frame, 16)
-  frame.title:SetPoint("TOPLEFT", 12, -10)
-  frame.title:SetText("SplitTimer - History")
   frame.hint = T.Text(frame, T.FontSize - 1)
-  frame.hint:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -4)
+  frame.hint:SetPoint("TOPLEFT", 12, -6)
   T.SetColour(frame.hint, T.Colour.TextDim)
   frame.hint:SetText("Every character is recorded automatically. Select a run to see its milestones. * = personal best for its start zone / class / pattern.")
 
@@ -107,7 +90,7 @@ function H.Create()
   -- Run list (left): header row + fixed-width columns, scrollable
   ----------------------------------------------------------------------
   local list = CreateFrame("Frame", nil, frame)
-  list:SetPoint("TOPLEFT", 12, -52)
+  list:SetPoint("TOPLEFT", 12, -26)
   list:SetPoint("BOTTOMLEFT", 12, 12)
   list:SetWidth(LIST_WIDTH)
   frame.list = list
@@ -236,7 +219,7 @@ local function AcquireListRow(i)
 end
 
 function H.Refresh()
-  if not frame or not frame:IsShown() then return end
+  if not frame or not frame:IsVisible() then return end
   local runs = SortedRuns()
   local isPB = ComputePBs()
   local me = ST.Record.Current().CharacterRun_Key
@@ -375,9 +358,15 @@ end
 ------------------------------------------------------------------------
 -- Visibility (the Active clock is force-stopped while this window is open)
 ------------------------------------------------------------------------
-function H.IsShown() return frame ~= nil and frame:IsShown() end
+-- History lives inside the data window; Clock.ForcedStop consults H.IsShown.
+function H.IsShown() return ST.DataWindow and ST.DataWindow.IsShown() end
 
 function H.Toggle()
-  H.Create()
-  frame:SetShown(not frame:IsShown())
+  ST.DataWindow.Toggle("history")
+end
+
+-- Select a run (e.g. from a pivot cell) and show it.
+function H.Select(key)
+  selectedKey = key
+  H.Refresh()
 end

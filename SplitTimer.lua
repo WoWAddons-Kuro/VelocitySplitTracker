@@ -51,14 +51,14 @@ local function SetupMinimap()
     type = "launcher",
     icon = "Interface\\Icons\\Inv_helm_armor_pirateeyepatch_b_01_green",
     OnClick = function(_, button)
-      if button == "RightButton" then ST.History.Toggle()
+      if button == "RightButton" then ST.DataWindow.Toggle()
       elseif button == "MiddleButton" then ST.Config.Open()
       else ST.Live.Toggle() end
     end,
     OnTooltipShow = function(tt)
       tt:AddLine("SplitTimer")
       tt:AddLine("|cffffffffLeft-click|r toggle split window", 0.8, 0.8, 0.8)
-      tt:AddLine("|cffffffffRight-click|r history", 0.8, 0.8, 0.8)
+      tt:AddLine("|cffffffffRight-click|r data window (pivots / history)", 0.8, 0.8, 0.8)
       tt:AddLine("|cffffffffMiddle-click|r settings", 0.8, 0.8, 0.8)
     end,
   })
@@ -69,7 +69,7 @@ local function Slash(msg)
   msg = (msg or ""):lower():match("^%s*(.-)%s*$")
   local cmd, rest = msg:match("^(%S*)%s*(.-)$")
   if cmd == "" then ST.Live.Toggle()
-  elseif cmd == "history" then ST.History.Toggle()
+  elseif cmd == "history" then ST.DataWindow.Toggle(rest ~= "" and rest or nil)
   elseif cmd == "config" or cmd == "settings" or cmd == "options" then ST.Config.Open()
   elseif cmd == "lock" then ST.db.Config.Locked = not ST.db.Config.Locked; U.Print("window %s", ST.db.Config.Locked and "locked" or "unlocked")
   elseif cmd == "reset" then ST.db.Config.Position = nil; ST.Live.Create(); ST.Live.RestorePosition(); U.Print("position reset")
