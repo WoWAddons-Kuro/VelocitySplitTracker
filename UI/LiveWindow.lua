@@ -262,18 +262,19 @@ function L.LayoutTimer(big)
   local area = frame.timer
   if area.isBig == big then return end
   area.isBig = big
-  area.lastPrimaryTenths = nil   -- force text rebuild in the new format
+  area.lastTick, area.lastTenths = nil, nil   -- force text rebuild in the new format
   area.big:ClearAllPoints(); area.secondary:ClearAllPoints()
   if big then
     area:SetHeight(T.TimerHeight)
     area.big:SetFont(T.Font, T.TimerSize, "")
     area.big:SetPoint("RIGHT", -T.Padding, 2)
+    area.secondary:SetFont(T.Font, T.FontSize - 2, "")
     area.secondary:SetPoint("BOTTOMRIGHT", -T.Padding, 1)
     area.secondary:SetJustifyH("RIGHT")
   else
     area:SetHeight(T.RowHeight)
-    area.big:SetFont(T.Font, T.FontSize + 1, "")
-    area.big:SetPoint("RIGHT", -T.Padding, 0)
+    area.big:SetPoint("RIGHT", -T.Padding, 0)   -- unused in compact mode (text cleared)
+    area.secondary:SetFont(T.Font, T.FontSize, "")
     area.secondary:SetPoint("LEFT", T.Padding, 0)
     area.secondary:SetJustifyH("LEFT")
   end
@@ -414,26 +415,37 @@ function L.UpdateTimer(V)
   if not frame then return end
   local cfg = Cfg()
   local played, active = ST.Clock.Now()
-  local primary, secondaryLabel, secondary
-  if cfg.Clock == "PLAYED" then
-    primary, secondaryLabel, secondary = played, "active", active
-  else
-    primary, secondaryLabel, secondary = active, "played", played
-  end
-  -- Only rebuild strings when the displayed value actually changes (keeps per-frame garbage near zero).
+  local playedSelected = cfg.Clock == "PLAYED"
   local big = cfg.BigTimer == true
-  local primaryTenths = big and math.floor(primary * 10) or math.floor(primary)
-  if primaryTenths ~= frame.timer.lastPrimaryTenths then
-    frame.timer.lastPrimaryTenths = primaryTenths
-    frame.timer.big:SetText(U.FormatTime(primary, big))
-  end
   local running = ST.Clock.IsRunning()
   local reason = ST.Clock.ForcedStop() or (not running and "idle") or nil
-  local secondaryWhole = math.floor(secondary)
-  if secondaryWhole ~= frame.timer.lastSecondaryWhole or reason ~= frame.timer.lastReason or secondaryLabel ~= frame.timer.lastSecondaryLabel then
-    frame.timer.lastSecondaryWhole, frame.timer.lastReason, frame.timer.lastSecondaryLabel = secondaryWhole, reason, secondaryLabel
+  local tm = frame.timer
+  -- Both clocks are re-rendered together, gated on Played's whole second, so their seconds
+  -- tick in lockstep instead of at two different millisecond offsets.
+  local tick = math.floor(played)
+  local primary = playedSelected and played or active
+  local tenths = big and math.floor(primary * 10) or nil
+  if tick ~= tm.lastTick or reason ~= tm.lastReason or playedSelected ~= tm.lastPlayedSelected or big ~= tm.lastBig then
+    tm.lastTick, tm.lastReason, tm.lastPlayedSelected, tm.lastBig = tick, reason, playedSelected, big
+    local activeWhole = math.floor(active + 0.5)   -- rounded, so it lands on the same visual tick as Played
     local suffix = reason and ("  |cffaaaaaa(" .. reason .. ")|r") or ""
-    frame.timer.secondary:SetText(secondaryLabel .. " " .. U.FormatTime(secondary) .. suffix)
+    if big then
+      -- big: selected clock large (tenths handled below), the other labelled underneath
+      local otherLabel = playedSelected and "Active" or "Played"
+      local otherVal = playedSelected and activeWhole or tick
+      tm.secondary:SetText(otherLabel .. " " .. U.FormatTime(otherVal) .. suffix)
+    else
+      -- compact: "Active 1:30:51   Played 1:49:44" with the selected one bright
+      local selOpen, selClose, dimOpen, dimClose = "|cffeeeeee", "|r", "|cff999999", "|r"
+      local a = (playedSelected and dimOpen or selOpen) .. "Active " .. U.FormatTime(activeWhole) .. (playedSelected and dimClose or selClose)
+      local p = (playedSelected and selOpen or dimOpen) .. "Played " .. U.FormatTime(tick) .. (playedSelected and selClose or dimClose)
+      tm.secondary:SetText(a .. "   " .. p .. suffix)
+      tm.big:SetText("")
+    end
+  end
+  if big and tenths ~= tm.lastTenths then
+    tm.lastTenths = tenths
+    tm.big:SetText(U.FormatTime(primary, true))
   end
   local colour
   if ST.Record.Current().CharacterRun_Frozen then colour = T.Colour.Frozen
@@ -443,9 +455,15 @@ function L.UpdateTimer(V)
     local last = done[#done]
     colour = last and T.DeltaColour(last.Best and (last.Time - last.Best), last.Gold) or T.Colour.Text
   end
-  if colour ~= frame.timer.lastColour then
-    frame.timer.lastColour = colour
-    T.SetColour(frame.timer.big, colour)
+  if colour ~= tm.lastColour then
+    tm.lastColour = colour
+    T.SetColour(tm.big, colour)
+    -- compact mode: tint the whole line with the state colour only when stopped/frozen
+    if not big then
+      if colour == T.Colour.Stopped or colour == T.Colour.Frozen then T.SetColour(tm.secondary, colour) else T.SetColour(tm.secondary, T.Colour.Text) end
+    else
+      T.SetColour(tm.secondary, T.Colour.TextDim)
+    end
   end
 end
 
