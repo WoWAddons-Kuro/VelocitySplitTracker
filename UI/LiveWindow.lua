@@ -544,7 +544,7 @@ function L.ShowPatternMenu(anchor)
   local items = {}
   local current = ST.Compare.Key().Pattern
   for _, p in ipairs(ST.Compare.PatternOptions()) do
-    items[#items + 1] = { text = p, checked = (current == p), func = function() Cfg().ComparePattern = p; ST.Compare.Invalidate(); L.Refresh() end }
+    items[#items + 1] = { text = ST.Compare.PatternLabel(p), checked = (current == p), func = function() Cfg().ComparePattern = p; ST.Compare.Invalidate(); L.Refresh() end }
   end
   items[#items + 1] = { separator = true }
   items[#items + 1] = { text = "Name this run's pattern...", func = function() StaticPopup_Show("VELOCITY_NAME_PATTERN") end }

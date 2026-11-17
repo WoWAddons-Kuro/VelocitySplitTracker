@@ -27,7 +27,10 @@ function C.Candidates()
   local key = C.Key()
   local meRec = ST.Record.Current()
   local me = meRec.CharacterRun_Key
-  local includeNamedInDefault = ST.db.Config.Compare_IncludeNamedInDefault ~= false
+  -- Filters are strict: "personal" is a value like any named pattern, so a run filed under
+  -- "vitochie" does NOT match a "personal" filter. The old leak (named runs counted under the
+  -- unnamed bucket) is now opt-in only.
+  local includeNamedInDefault = ST.db.Config.Compare_IncludeNamedInDefault == true
   local sameModeOnly = ST.db.Config.Compare_AnyMode ~= true   -- a PvP run is not a benchmark for a PvE run
   local out = {}
   for k, rec in pairs(ST.db.Characters) do
@@ -37,7 +40,7 @@ function C.Candidates()
     if k ~= me and zoneOK and modeOK then
       local classOK = key.Class == "ANY" or rec.CharacterRun_ClassFile == key.Class
       local pat = ST.Data.PatternOf(rec)
-      local patOK = (pat == key.Pattern) or (key.Pattern == ST.Data.DefaultPattern and includeNamedInDefault)
+      local patOK = key.Pattern == "ANY" or (pat == key.Pattern) or (key.Pattern == ST.Data.DefaultPattern and includeNamedInDefault)
       if classOK and patOK then out[#out + 1] = rec end
     end
   end
@@ -254,11 +257,15 @@ function C.PatternOptions()
     if (zone == "ANY" or rec.CharacterRun_StartZone == zone) and rec.CharacterRun_Pattern then set[rec.CharacterRun_Pattern] = true end
   end
   local def = ST.Data.DefaultPattern
-  local list = { def }
+  -- "ANY" first (every pattern), then "personal" (unnamed runs only), then the named patterns.
+  local list = { "ANY", def }
   for p in pairs(set) do list[#list + 1] = p end
-  table.sort(list, function(a, b) if a == def then return true elseif b == def then return false end return a < b end)
+  local rank = { ANY = 0, [def] = 1 }
+  table.sort(list, function(a, b) local ra, rb = rank[a] or 2, rank[b] or 2; if ra ~= rb then return ra < rb end return a < b end)
   return list
 end
+
+function C.PatternLabel(p) return p == "ANY" and "Any pattern" or p end
 
 -- Pretty class name from file name.
 function C.ClassLabel(classFile)
