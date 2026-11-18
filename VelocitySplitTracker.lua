@@ -12,7 +12,7 @@ local DEFAULT_CONFIG = {
   Locked = false,
   TimesSide = "RIGHT",   -- "LEFT" | "RIGHT"
   Clock = "ACTIVE",      -- "ACTIVE" | "PLAYED"
-  BigTimer = false,      -- large LiveSplit-style timer with tenths; off = compact row
+  BigTimer = false,      -- large LiveSplit-style timer; off = compact row
   AlwaysShowMoney = true, -- pin the next money milestone as the last upcoming row
   ShowDeathsSoftcore = true, -- footer death counter always shown (even 0) on non-hardcore runs; hardcore shows "Hardcore"
   -- Auto-hide (Core/AutoHide.lua): 0 = never hide. Axes: level | quest | skill | gold | zone.

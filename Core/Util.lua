@@ -5,7 +5,7 @@ ST.Util = {}
 local U = ST.Util
 
 -- Format seconds as LiveSplit does: H:MM:SS when >= 1h, otherwise M:SS.
--- withTenths adds .t (used by the big timer only).
+-- withTenths adds .t (no longer used by the window; kept for callers/tests).
 function U.FormatTime(seconds, withTenths)
   if seconds == nil then return "-" end
   local negative = seconds < 0

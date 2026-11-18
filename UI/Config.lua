@@ -144,8 +144,8 @@ function C.Create()
   -- Section: Split window
   ------------------------------------------------------------------------
   local win = Section("Split window")
-  win:Add(Check(win, "Large timer (LiveSplit style, with tenths)",
-    "Show the big two-line timer with tenths of a second. Off = a compact single row.",
+  win:Add(Check(win, "Large timer (LiveSplit style)",
+    "Show the big two-line timer. Off = a compact single row with both clocks.",
     function() return Cfg().BigTimer == true end, function(v) Cfg().BigTimer = v end), 26)
   win:Add(Check(win, "Always show the next money milestone",
     "Pin the next 'Money Acquired' step as the last upcoming row. Off = only within 20% of the step.",

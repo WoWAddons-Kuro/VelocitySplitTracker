@@ -261,17 +261,21 @@ local function BuildTitle(f)
     self:SetWidth(math.min(w, maxW)); self.text:SetWidth(math.min(w, maxW))
   end
 
-  -- Expanded block: one row per setting, dim heading on the left, dropdown value on the right.
+  -- Expanded block (under the collapsed line): one row per FILTER setting, dim heading on the
+  -- left, dropdown value on the right. The comparison target is NOT repeated here - the vs line
+  -- above is that dropdown - so the values get the full width.
   title.rows = {}
-  local menuFor = { target = L.ShowTargetMenu, zone = L.ShowZoneMenu, class = L.ShowClassMenu, pattern = L.ShowPatternMenu, clock = L.ShowClockMenu }
-  for i = 1, 5 do
+  local menuFor = { zone = L.ShowZoneMenu, class = L.ShowClassMenu, pattern = L.ShowPatternMenu, clock = L.ShowClockMenu }
+  for i = 1, 4 do
     local r = {}
     r.label = T.Text(title, T.FontSize - 1)
     r.label:SetPoint("TOPLEFT", T.Padding + 14, -(T.TitleHeightCollapsed + (i - 1) * T.TitleRowHeight) - 3)
-    r.label:SetWidth(78); r.label:SetJustifyH("LEFT")
+    r.label:SetWidth(70); r.label:SetJustifyH("LEFT")
     T.SetColour(r.label, T.Colour.TextDim)
     r.value = Clickable(function(b) local fn = menuFor[b.rowId]; if fn then fn(b) end end)
     r.value:SetPoint("LEFT", r.label, "RIGHT", 6, 0)
+    r.value:SetPoint("RIGHT", title, "RIGHT", -T.Padding, 0)   -- clamp: never past the window edge
+    r.value.text:SetWordWrap(false); r.value.text:SetPoint("RIGHT")
     r.value:Hide(); r.label:Hide()
     title.rows[i] = r
   end
@@ -294,22 +298,28 @@ local function BuildTimer(f)
   return area
 end
 
--- Large LiveSplit-style block (tenths, two lines) or a compact single row.
+-- Large LiveSplit-style block (two lines, whole seconds) or a compact single row.
 function L.LayoutTimer(big)
   local area = frame.timer
   if area.isBig == big then return end
   area.isBig = big
-  area.lastTick, area.lastTenths = nil, nil   -- force text rebuild in the new format
-  area.big:ClearAllPoints(); area.secondary:ClearAllPoints()
+  area.lastTick, area.lastBigTick = nil, nil   -- force text rebuild in the new format
+  area.big:ClearAllPoints(); area.secondary:ClearAllPoints(); area.modeLabel:ClearAllPoints()
   if big then
+    -- [ other clock, small, left ]           1:12:56   <- big number, top right
+    --                                          Active   <- mode caption, small, under it
     area:SetHeight(T.TimerHeight)
     area.big:SetFont(T.Font, T.TimerSize, "")
-    area.big:SetPoint("RIGHT", -T.Padding, 2)
+    area.big:SetPoint("TOPRIGHT", -T.Padding, -2)
+    area.modeLabel:SetPoint("TOPRIGHT", area.big, "BOTTOMRIGHT", -2, 2)
+    area.modeLabel:SetJustifyH("RIGHT")
+    area.modeLabel:Show()
     area.secondary:SetFont(T.Font, T.FontSize - 2, "")
-    area.secondary:SetPoint("BOTTOMRIGHT", -T.Padding, 1)
-    area.secondary:SetJustifyH("RIGHT")
+    area.secondary:SetPoint("LEFT", T.Padding, 0)
+    area.secondary:SetJustifyH("LEFT")
   else
     area:SetHeight(T.RowHeight)
+    area.modeLabel:Hide()
     area.big:SetPoint("RIGHT", -T.Padding, 0)   -- unused in compact mode (text cleared)
     area.secondary:SetFont(T.Font, T.FontSize, "")
     area.secondary:SetPoint("LEFT", T.Padding, 0); area.secondary:SetPoint("RIGHT", -T.Padding, 0)
@@ -512,7 +522,6 @@ function L.UpdateTimer(V)
   -- tick in lockstep instead of at two different millisecond offsets.
   local tick = math.floor(played)
   local primary = playedSelected and played or active
-  local tenths = big and math.floor(primary * 10) or nil
   if tick ~= tm.lastTick or reason ~= tm.lastReason or playedSelected ~= tm.lastPlayedSelected or big ~= tm.lastBig then
     tm.lastTick, tm.lastReason, tm.lastPlayedSelected, tm.lastBig = tick, reason, playedSelected, big
     local activeWhole = math.floor(active + 0.5)   -- rounded, so it lands on the same visual tick as Played
@@ -520,11 +529,14 @@ function L.UpdateTimer(V)
     -- left of the Active label and takes the same emphasis (bright when Active is selected, dim otherwise).
     local reasonPrefix = reason and ("(" .. reason .. ") ") or ""
     if big then
-      -- big: selected clock large (tenths handled below), the other labelled underneath
+      -- big: the OTHER clock small at the left; the big number's own name small under it.
+      -- The stop reason stays attached to "Active" wherever that label ends up.
       if playedSelected then
         tm.secondary:SetText(reasonPrefix .. "Active " .. U.FormatTime(activeWhole))
+        tm.modeLabel:SetText("Played")
       else
         tm.secondary:SetText("Played " .. U.FormatTime(tick))
+        tm.modeLabel:SetText(reasonPrefix .. "Active")
       end
     else
       -- compact: "Active 1:30:51   Played 1:49:44" with the selected one bright
@@ -535,9 +547,9 @@ function L.UpdateTimer(V)
       tm.big:SetText("")
     end
   end
-  if big and tenths ~= tm.lastTenths then
-    tm.lastTenths = tenths
-    tm.big:SetText(U.FormatTime(primary, true))
+  if big and tick ~= tm.lastBigTick then
+    tm.lastBigTick = tick
+    tm.big:SetText(U.FormatTime(math.floor(primary + 0.5)))
   end
   local colour
   if ST.Record.Current().CharacterRun_Frozen then colour = T.Colour.Frozen
