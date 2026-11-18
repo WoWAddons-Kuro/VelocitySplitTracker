@@ -149,7 +149,7 @@ function C.TargetLabel()
   if t.Mode == "BestSplits" then return "vs Best splits" end
   if not t.Run then return "vs auto: (no runs yet)" end
   -- Auto picked a run we have already out-levelled: nothing ahead to pace against.
-  if t.Mode == "Auto" and t.Exhausted then return "vs auto: no run data beyond level " .. C.Extent(t.Run) end
+  if t.Mode == "Auto" and t.Exhausted then return "vs auto: no run data..." end
   return (t.Mode == "Auto" and "vs auto: " or "vs ") .. ST.Util.RunDisplayName(t.Run)
 end
 
