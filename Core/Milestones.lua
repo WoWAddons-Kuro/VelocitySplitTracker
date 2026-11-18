@@ -478,7 +478,11 @@ function M.Init()
     if IsMounted and IsMounted() and not ST.Record.Has("mounted:1") then ST.Record.Hit("mounted:1", "First Mount") end
   end)
   U.PhaseEnd(o); o = U.Phase("SetScript")
-  frame:SetScript("OnEvent", function(_, event, ...)
+  -- Every event runs under pcall: an error in one detector must not be swallowed by a hidden
+  -- script-error setting (the symptom is "the split silently didn't record"). It is printed
+  -- once per distinct message so a per-tick failure cannot flood chat.
+  local reported = {}
+  local function OnEvent(_, event, ...)
     local outer = U.Phase("Milestones.event:" .. event)
     if event == "PLAYER_LEVEL_UP" then
       local level = ...
@@ -548,6 +552,14 @@ function M.Init()
       end)
     end
     U.PhaseEnd(outer)
+  end
+  frame:SetScript("OnEvent", function(self, event, ...)
+    local ok, err = pcall(OnEvent, self, event, ...)
+    if not ok then
+      err = tostring(err)
+      if not reported[err] then reported[err] = true; U.Print("|cffff4040%s handler failed:|r %s", event, err) end
+      ST.Probe = nil
+    end
   end)
   U.PhaseEnd(o)
 end
