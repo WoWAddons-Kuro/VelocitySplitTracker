@@ -18,7 +18,7 @@ local DEFAULT_CONFIG = {
   -- Auto-hide (Core/AutoHide.lua): 0 = never hide. Axes: level | quest | skill | gold | zone.
   AutoHide_Seconds = 0,
   AutoHide_ShowOnReached = { level = true, quest = true, skill = true, gold = true, zone = true },
-  AutoHide_ShowNearUpcoming = false,
+  AutoHide_ShowNearUpcoming = true,
   AutoHide_ShowNearAxes = { level = true, quest = true, skill = true, gold = true, zone = true },
   RowsDone = 4,
   RowsUpcoming = 6,
