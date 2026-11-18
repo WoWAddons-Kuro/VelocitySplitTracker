@@ -270,9 +270,9 @@ function V.Build()
     Level = ST.Record.Level(),
     Locked = cfg.Locked == true,
     Expanded = cfg.TitleExpanded == true,
-    -- rows shown when expanded; Id is what the renderer passes back to Commands
+    -- rows shown when expanded; Id is what the renderer passes back to Commands.
+    -- The comparison target is not a row: the collapsed "vs ..." line IS that dropdown.
     Rows = {
-      { Id = "target",  Label = "Comparison", Value = ST.Compare.TargetLabel():gsub("^vs ", "") },
       { Id = "zone",    Label = "Start zone", Value = ST.Compare.ZoneLabel(key.StartZone) },
       { Id = "class",   Label = "Class",      Value = ST.Compare.ClassLabel(key.Class) },
       { Id = "pattern", Label = "Pattern",    Value = ST.Compare.PatternLabel(key.Pattern) },

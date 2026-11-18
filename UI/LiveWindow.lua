@@ -178,7 +178,7 @@ local function BuildTitle(f)
   -- Subtle lock toggle in the corner
   local lock = CreateFrame("Button", nil, title)
   lock:SetSize(14, 14)
-  lock:SetPoint("TOPRIGHT", -3, -4)
+  lock:SetPoint("TOPRIGHT", -3, -(T.TitleHeightCollapsed - 14) / 2)   -- vertically centred on line 1
   lock:SetFrameLevel(title:GetFrameLevel() + 5)
   lock:RegisterForClicks("LeftButtonUp")
   lock.tex = lock:CreateTexture(nil, "ARTWORK")
@@ -197,13 +197,16 @@ local function BuildTitle(f)
   title.lock = lock
 
   title.level = T.Text(title, T.TitleSize + 1)
-  title.level:SetPoint("RIGHT", lock, "LEFT", -4, 0)
+  title.level:SetPoint("RIGHT", lock, "LEFT", -4, 0)   -- lock is TOP-anchored, so this stays on line 1
   title.level:SetJustifyH("RIGHT")
 
   -- Hamburger: three drawn lines (ARIALN has no glyph for it). Opens the same menu as right-click.
+  -- Everything on the collapsed line is anchored to the TOP of the title frame (not its vertical
+  -- centre) so it stays on line 1 when the expanded rows grow the frame downwards.
+  local line1Y = -(T.TitleHeightCollapsed / 2)   -- centre of the first line
   local menuBtn = CreateFrame("Button", nil, title)
   menuBtn:SetSize(14, 14)
-  menuBtn:SetPoint("LEFT", T.Padding - 1, 0)
+  menuBtn:SetPoint("TOPLEFT", T.Padding - 1, line1Y + 7)
   menuBtn:SetFrameLevel(title:GetFrameLevel() + 5)
   menuBtn.lines = {}
   for i = 1, 3 do
@@ -274,8 +277,15 @@ local function BuildTitle(f)
     T.SetColour(r.label, T.Colour.TextDim)
     r.value = Clickable(function(b) local fn = menuFor[b.rowId]; if fn then fn(b) end end)
     r.value:SetPoint("LEFT", r.label, "RIGHT", 6, 0)
-    r.value:SetPoint("RIGHT", title, "RIGHT", -T.Padding, 0)   -- clamp: never past the window edge
-    r.value.text:SetWordWrap(false); r.value.text:SetPoint("RIGHT")
+    r.value.text:SetWordWrap(false)
+    -- Size from the text but clamp to the space left of the window edge so a long value
+    -- ellipsizes instead of running past the lock. (The button keeps a single LEFT anchor.)
+    r.value.SetLabel = function(self, s)
+      self.text:SetText(s .. " |cff777777v|r")
+      local maxW = (frame and frame:GetWidth() or T.Width) - (T.Padding + 14 + 70 + 6) - T.Padding
+      local w = math.min(self.text:GetStringWidth() + 2, maxW)
+      self:SetWidth(w); self.text:SetWidth(w)
+    end
     r.value:Hide(); r.label:Hide()
     title.rows[i] = r
   end
@@ -409,9 +419,11 @@ function L.Refresh()
     titleH = T.TitleHeightCollapsed + #TT.Rows * T.TitleRowHeight + 2
     for i, rowVM in ipairs(TT.Rows) do
       local r = tt.rows[i]
-      r.label:SetText(rowVM.Label); r.label:Show()
-      r.value.rowId = rowVM.Id
-      r.value:SetLabel(rowVM.Value); r.value:Show()
+      if r then   -- renderer has a fixed pool; a view row beyond it is skipped, never a crash
+        r.label:SetText(rowVM.Label); r.label:Show()
+        r.value.rowId = rowVM.Id
+        r.value:SetLabel(rowVM.Value); r.value:Show()
+      end
     end
     for i = #TT.Rows + 1, #tt.rows do tt.rows[i].label:Hide(); tt.rows[i].value:Hide() end
     -- down-pointing: rotate the square so a corner points down (3/4 pi puts a vertex at the bottom)
