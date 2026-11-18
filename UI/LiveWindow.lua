@@ -330,7 +330,9 @@ function L.LayoutTimer(big)
     area.modeLabel:SetJustifyH("RIGHT")
     area.modeLabel:Show()
     area.secondary:SetFont(T.Font, T.FontSize - 2, "")
-    area.secondary:SetPoint("LEFT", T.Padding, 0)
+    -- lower-left, on the same baseline as the mode caption under the big number
+    area.secondary:SetPoint("BOTTOMLEFT", area, "BOTTOMLEFT", T.Padding, 0)
+    area.secondary:SetPoint("BOTTOM", area.modeLabel, "BOTTOM", 0, 0)
     area.secondary:SetJustifyH("LEFT")
   else
     area:SetHeight(T.RowHeight)
