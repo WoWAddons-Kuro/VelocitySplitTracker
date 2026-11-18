@@ -20,7 +20,7 @@ local function Refresh() if ST.Live then ST.Live.Refresh() end end
 function C.Create()
   if panel then return panel end
   panel = CreateFrame("Frame", "VelocityConfigPanel")
-  panel.name = "Velocity"
+  panel.name = "Velocity Split Tracker"
 
   -- Scrolling container: the registered canvas holds a ScrollFrame whose child `content`
   -- carries every widget. Mouse wheel scrolls; a standard scrollbar sits on the right.
@@ -38,7 +38,7 @@ function C.Create()
   end)
 
   local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-  title:SetPoint("TOPLEFT", 16, -16); title:SetText("Velocity")
+  title:SetPoint("TOPLEFT", 16, -16); title:SetText("Velocity Split Tracker")
   local sub = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
   sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6); sub:SetWidth(560); sub:SetJustifyH("LEFT")
   sub:SetText("LiveSplit-style split tracker for leveling. Every character is recorded automatically; these options only change what the split window shows. While this panel is open the Active clock is paused.")
