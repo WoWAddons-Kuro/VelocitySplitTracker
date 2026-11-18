@@ -141,9 +141,15 @@ function C.Create()
   end
 
   ------------------------------------------------------------------------
-  -- Section: Split window
+  -- Lock: outside any section, directly under the intro (quick to reach).
   ------------------------------------------------------------------------
-  local win = Section("Split window")
+  Place(Check(content, "Lock window position", "Stops the split window being dragged. Same as the lock icon in its title bar.",
+    function() return Cfg().Locked == true end, function(v) ST.Live.SetLocked(v) end), -14)
+
+  ------------------------------------------------------------------------
+  -- Section: Display Options
+  ------------------------------------------------------------------------
+  local win = Section("Display Options")
   win:Add(Check(win, "Large timer (LiveSplit style)",
     "Show the big two-line timer. Off = a compact single row with both clocks.",
     function() return Cfg().BigTimer == true end, function(v) Cfg().BigTimer = v end), 26)
@@ -153,8 +159,13 @@ function C.Create()
   win:Add(Check(win, "Always show deaths (softcore)",
     "Show the death counter in the footer even when it is 0. Off = only once you have died. Hardcore runs always show 'Hardcore' instead.",
     function() return Cfg().ShowDeathsSoftcore ~= false end, function(v) Cfg().ShowDeathsSoftcore = v end), 26)
-  win:Add(Check(win, "Lock window position", nil,
-    function() return Cfg().Locked == true end, function(v) ST.Live.SetLocked(v) end), 26)
+  -- Attention_RecentSeconds: how long a profession / money row stays up after its last gain
+  -- (unless it is sticky for another reason: near the next step, trainable, or pinned).
+  local D = ST.Data
+  win:Add(Slider(win, "VelocityConfigRecentSeconds", 1, 60,
+    function() return math.floor((Cfg().Attention_RecentSeconds or D.Attention_RecentSeconds) + 0.5) end,
+    function(v) Cfg().Attention_RecentSeconds = v end,
+    function(v) return "Auto-Hide Profession and Money Progress After: " .. v .. " seconds" end), 44, -10)
   win:Finish()
 
   ------------------------------------------------------------------------
