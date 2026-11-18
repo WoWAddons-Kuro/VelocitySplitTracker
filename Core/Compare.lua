@@ -110,7 +110,12 @@ end
 
 function C.AutoPick()
   local ranked = C.RankedCandidates()
-  return ranked[1] and ranked[1].Rec or nil
+  -- Second return: whether the pick still has something AHEAD of the player (its extent is
+  -- above our level). When false we have out-levelled every candidate: the run is kept so done
+  -- rows keep their deltas, but the title must not claim we are racing it.
+  local top = ranked[1]
+  if not top then return nil, false end
+  return top.Rec, top.Eligible == true
 end
 
 -- Resolve the active target: { Mode, Run (rec or nil), RunKey }
@@ -126,13 +131,13 @@ function C.Target()
     mode = "Auto"
   end
   if mode == "Auto" then
-    local run = C.AutoPick()
+    local run, ahead = C.AutoPick()
     local key = run and run.CharacterRun_Key
     if key ~= lastAutoKey then
       if lastAutoKey ~= nil and run then ST.Util.Print("comparison: now vs %s", ST.Util.RunDisplayName(run)) end
       lastAutoKey = key
     end
-    return { Mode = "Auto", Run = run, RunKey = key }
+    return { Mode = "Auto", Run = run, RunKey = key, Exhausted = run ~= nil and not ahead }
   end
   return { Mode = mode }   -- BestSplits | None
 end
@@ -142,6 +147,8 @@ function C.TargetLabel()
   if t.Mode == "None" then return "no comparison" end
   if t.Mode == "BestSplits" then return "vs Best splits" end
   if not t.Run then return "vs auto: (no runs yet)" end
+  -- Auto picked a run we have already out-levelled: nothing ahead to pace against.
+  if t.Mode == "Auto" and t.Exhausted then return "vs auto: no run data beyond level " .. C.Extent(t.Run) end
   return (t.Mode == "Auto" and "vs auto: " or "vs ") .. ST.Util.RunDisplayName(t.Run)
 end
 
