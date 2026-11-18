@@ -178,10 +178,14 @@ The title dropdowns are **filters that narrow the list of runs offered** as a re
 
 ### 5.3 Title bar
 ```
-☰ Dun Morogh v - Hunter v - default v - Active v        9 🔒
-   vs Vitochie Dwarf Hunter 1:09 [2026.11.17 03:55] v
+☰ vs auto: Vitochie Dwarf Hunter 1:09 [2026.11.17 03:55] v ◆        9 🔒      ← collapsed (default)
+   Start zone   Dun Morogh v                                              ← twiddle ◆ expands these
+   Class        Hunter v
+   Pattern      personal v
+   Clock        Active v
 ```
-- Second title line = the comparison target as a dropdown. `T.TitleHeight` 24 → 40.
+- **Collapsed** (one line, `T.TitleHeightCollapsed` 24): hamburger, the comparison target as a dropdown (the one thing changed mid-run), the twiddle, the level, the lock. Everything on this line is TOP-anchored so it stays put when the frame grows.
+- **Expanded** (`Config.TitleExpanded`): four labelled filter rows under it (`T.TitleRowHeight` 17 each), each value a dropdown clamped to the window edge. The comparison target is *not* repeated as a row - the collapsed line is that dropdown. Renderer draws only from `V.Title` (`VsLabel`, `Level`, `Locked`, `Expanded`, `Rows[]`).
 - The dropdown has a **selected-mark column** (check for the active choice, blank gap otherwise) and lists: `Auto select` first, then the candidate runs **ranked in `Auto` order** (5.1.1: eligible first, by `T_end` asc) — so the row directly under `Auto select` is the run Auto is using *right now* — capped at **5** runs, then the two fixed modes:
 
 ```
