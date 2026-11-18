@@ -495,6 +495,7 @@ function L.Refresh()
 
   frame:SetHeight(-y)
   L.UpdateTimer(V)
+  if ST.AutoHide then ST.AutoHide.CheckNear(V.Upcoming) end
   U.PhaseEnd(outer)
 end
 
@@ -666,7 +667,7 @@ function L.ShowContextMenuImpl(anchor)
     { text = "History", func = function() ST.History.Toggle() end },
     { text = "Import reference run...", func = function() ST.Reference.ShowImport() end },
     { text = "Settings", func = function() ST.Config.Open() end },
-    { text = "Hide", func = function() L.Toggle() end },
+    { text = "Hide", func = function() L.HideByUser() end },
   }
   for _, it in ipairs(settings) do items[#items + 1] = it end
   for _, it in ipairs(windows) do items[#items + 1] = it end
@@ -695,6 +696,22 @@ function L.Toggle(show)
   if show == nil then show = (not existed) or (not frame:IsShown()) end
   frame:SetShown(show)
   Cfg().Shown = show
+  -- A deliberate show restarts the auto-hide countdown (so the window does not vanish instantly).
+  if show and ST.AutoHide then ST.AutoHide.Trigger("toggle") end
+end
+
+-- Auto-hide show/hide: transient visibility that leaves Config.Shown (the user's choice) alone.
+function L.ShowTransient()
+  if not frame then return end
+  if Cfg().Shown ~= false and not frame:IsShown() then frame:Show(); L.Refresh() end
+end
+function L.HideTransient()
+  if frame then frame:Hide() end
+end
+
+-- Context menu "Hide": hide and stop auto-hide from bringing it back (Config.Shown = false).
+function L.HideByUser()
+  L.Toggle(false)
 end
 
 function L.SetLocked(locked)

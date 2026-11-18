@@ -146,6 +146,7 @@ function R.Hit(key, label, extra)
     U.Print("%s  %s%s", label or key, U.FormatTime(active), deltaText)
   end
   ST.Clock.Activity()
+  if not m.Inferred and ST.AutoHide then ST.AutoHide.OnHit(key) end
   if ST.Live then ST.Live.QueueRefresh() end
   -- and again when this split should leave the done list
   C_Timer.After((ST.db.Config.Attention_DoneSeconds or D.Attention_DoneSeconds) + 0.5, function() if ST.Live then ST.Live.QueueRefresh() end end)

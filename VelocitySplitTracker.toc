@@ -26,6 +26,7 @@ Core\Locations.lua
 Core\View.lua
 Core\Pivot.lua
 Core\Reference.lua
+Core\AutoHide.lua
 UI\Theme.lua
 UI\LiveWindow.lua
 UI\History.lua

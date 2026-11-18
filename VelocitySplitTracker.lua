@@ -15,6 +15,11 @@ local DEFAULT_CONFIG = {
   BigTimer = false,      -- large LiveSplit-style timer with tenths; off = compact row
   AlwaysShowMoney = true, -- pin the next money milestone as the last upcoming row
   ShowDeathsSoftcore = true, -- footer death counter always shown (even 0) on non-hardcore runs; hardcore shows "Hardcore"
+  -- Auto-hide (Core/AutoHide.lua): 0 = never hide. Axes: level | quest | skill | gold | zone.
+  AutoHide_Seconds = 0,
+  AutoHide_ShowOnReached = { level = true, quest = true, skill = true, gold = true, zone = true },
+  AutoHide_ShowNearUpcoming = false,
+  AutoHide_ShowNearAxes = { level = true, quest = true, skill = true, gold = true, zone = true },
   RowsDone = 4,
   RowsUpcoming = 6,
   Scale = 1,
@@ -244,6 +249,7 @@ f:SetScript("OnEvent", function(_, event, arg1, arg2)
     Stage("Milestones", ST.Milestones.Init)
     Stage("Locations", ST.Locations.Init)
     Stage("Window", ST.Live.Create)   -- applies Config.Shown itself
+    Stage("AutoHide", ST.AutoHide.Apply)   -- arms the hide countdown when AutoHide_Seconds > 0
   end
 end)
 ST.Probe = nil  -- end of file-load phase for SplitTimer.lua
