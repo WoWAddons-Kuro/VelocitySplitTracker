@@ -301,8 +301,13 @@ local function BuildTimer(f)
   area:SetHeight(T.TimerHeight)
   area.big = T.Text(area, T.TimerSize)
   area.big:SetJustifyH("RIGHT")
+  -- compact: the whole "Active x | Played y" line. big: the OTHER clock, at the left edge.
   area.secondary = T.Text(area, T.FontSize - 2)
   T.SetColour(area.secondary, T.Colour.TextDim)
+  -- big only: the name of the clock the big number is showing, small, under the number.
+  area.modeLabel = T.Text(area, T.FontSize - 3)
+  T.SetColour(area.modeLabel, T.Colour.TextDim)
+  area.modeLabel:Hide()
   area.sepTop = T.Separator(f)
   area.sepTop:SetPoint("TOPLEFT", area, "TOPLEFT"); area.sepTop:SetPoint("TOPRIGHT", area, "TOPRIGHT")
   return area
