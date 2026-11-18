@@ -50,7 +50,7 @@ function V.Done(limit)
   -- Guarantee the previous level row. It is exempt from the done-window: use the recorded
   -- milestone (real time) whenever one exists; only fall back to a timeless placeholder when
   -- the level was inferred / reached before the addon was installed.
-  local level = UnitLevel("player")
+  local level = ST.Record.Level()
   local prevKey = D.Key("level", level)
   local present = false
   for _, it in ipairs(out) do if it.Key == prevKey then present = true break end end
@@ -73,7 +73,7 @@ end
 function V.Upcoming(limit)
   local rec = ST.Record.Current()
   local cfg = ST.db.Config
-  local level = UnitLevel("player")
+  local level = ST.Record.Level()
   local out = {}
 
   -- next level, always
@@ -256,7 +256,7 @@ function V.SegmentDelta(n)
   return (b[field] - a[field]) - best
 end
 -- Kept for callers that only want the latest one.
-function V.PreviousSegmentDelta() return V.SegmentDelta(UnitLevel("player")) end
+function V.PreviousSegmentDelta() return V.SegmentDelta(ST.Record.Level()) end
 
 function V.Build()
   local cfg = ST.db.Config
@@ -267,7 +267,7 @@ function V.Build()
   -- Collapsed: "vs <target>"  level  lock.  Expanded: one labelled row per filter/setting.
   local title = {
     VsLabel = ST.Compare.TargetLabel(),
-    Level = UnitLevel("player"),
+    Level = ST.Record.Level(),
     Locked = cfg.Locked == true,
     Expanded = cfg.TitleExpanded == true,
     -- rows shown when expanded; Id is what the renderer passes back to Commands
@@ -282,7 +282,7 @@ function V.Build()
   return {
     Title = title,
     CompareKey = { StartZone = key.StartZone, Class = ST.Compare.ClassLabel(key.Class), Pattern = key.Pattern },
-    Level = UnitLevel("player"),
+    Level = ST.Record.Level(),
     Done = V.Done(cfg.RowsDone or 4),
     Upcoming = V.Upcoming(cfg.RowsUpcoming or 6),
     Final = V.Final(),

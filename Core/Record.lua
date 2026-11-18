@@ -156,6 +156,15 @@ function R.Has(key)
   return R.Current().Milestones[key] ~= nil
 end
 
+-- The player's level as the addon knows it. PLAYER_LEVEL_UP carries the new level as its
+-- argument and we store it on the record immediately; UnitLevel("player") can still report
+-- the OLD level during the refresh that follows the ding (observed 2026-11-17 on Forever and
+-- Era: title/rows stayed one level behind until an unrelated refresh). Take the higher of the two.
+function R.Level()
+  local unit = UnitLevel and UnitLevel("player") or 0
+  return math.max(unit, R.Current().CharacterRun_Level or 0)
+end
+
 -- Mark levels below the current one that were never recorded (addon installed
 -- mid-run, or missed events). They carry the current clocks and Inferred=true.
 function R.ReconcileLevels()

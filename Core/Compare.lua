@@ -91,7 +91,7 @@ end
 -- Candidates ranked in Auto order (SPEC 5.1.1): eligible (extent > player level) first, by
 -- end time asc; ties by extent desc, then time at level+1 asc, then name.
 function C.RankedCandidates()
-  local level = UnitLevel("player")
+  local level = ST.Record.Level()
   local list = {}
   for _, rec in ipairs(C.Candidates()) do
     local ext, endT = C.Extent(rec)
