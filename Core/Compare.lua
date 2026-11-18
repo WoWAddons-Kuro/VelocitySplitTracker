@@ -110,12 +110,13 @@ end
 
 function C.AutoPick()
   local ranked = C.RankedCandidates()
-  -- Second return: whether the pick still has something AHEAD of the player (its extent is
-  -- above our level). When false we have out-levelled every candidate: the run is kept so done
-  -- rows keep their deltas, but the title must not claim we are racing it.
+  -- Second return: whether we have gone PAST the pick, i.e. our last completed level milestone
+  -- is beyond its extent (L > E). Note this is one level stricter than Eligible (E > L): at
+  -- L == E the reference is exactly consumed - the ding row still has its full delta - and the
+  -- comparison must stay. Only once we ding past it is there "no run data".
   local top = ranked[1]
   if not top then return nil, false end
-  return top.Rec, top.Eligible == true
+  return top.Rec, ST.Record.Level() > top.Extent
 end
 
 -- Resolve the active target: { Mode, Run (rec or nil), RunKey }
@@ -131,13 +132,13 @@ function C.Target()
     mode = "Auto"
   end
   if mode == "Auto" then
-    local run, ahead = C.AutoPick()
+    local run, passed = C.AutoPick()
     local key = run and run.CharacterRun_Key
     if key ~= lastAutoKey then
       if lastAutoKey ~= nil and run then ST.Util.Print("comparison: now vs %s", ST.Util.RunDisplayName(run)) end
       lastAutoKey = key
     end
-    return { Mode = "Auto", Run = run, RunKey = key, Exhausted = run ~= nil and not ahead }
+    return { Mode = "Auto", Run = run, RunKey = key, Exhausted = run ~= nil and passed }
   end
   return { Mode = mode }   -- BestSplits | None
 end
