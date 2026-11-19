@@ -14,13 +14,14 @@ local selectedKey
 -- Column layout for the run list: { title, width, justify }
 local COLUMNS = {
   { "",          14, "LEFT"  },   -- PB star
-  { "Character", 200, "LEFT"  },
+  { "Character", 190, "LEFT"  },
   { "Start zone",100, "LEFT"  },
   { "Class",     64, "LEFT"  },
   { "Lvl",       28, "RIGHT" },
   { "Active",    62, "RIGHT" },
   { "Played",    62, "RIGHT" },
-  { "Pattern",  120, "LEFT"  },
+  { "Client",    92, "LEFT"  },   -- Forever 1.60.1 | Era 1.15.7 (realmless vs realm runs are different categories)
+  { "Pattern",   96, "LEFT"  },
 }
 local LIST_WIDTH = 0
 for _, c in ipairs(COLUMNS) do LIST_WIDTH = LIST_WIDTH + c[2] + 4 end
@@ -235,7 +236,8 @@ function H.Refresh()
     c[5]:SetText(tostring(rec.CharacterRun_Level or "?"))
     c[6]:SetText(U.FormatTime(rec.ActiveSeconds_Total))
     c[7]:SetText(U.FormatTime(rec.PlayedSeconds_Total))
-    c[8]:SetText(rec.CharacterRun_Pattern or "|cff777777default|r")
+    c[8]:SetText(rec.CharacterRun_ClientFlavour and U.ClientLabel(rec, true) or "|cff777777?|r")
+    c[9]:SetText(rec.CharacterRun_Pattern or "|cff777777default|r")
     row.sel:SetShown(rec.CharacterRun_Key == selectedKey)
     row:SetScript("OnClick", function() selectedKey = rec.CharacterRun_Key; H.Refresh() end)
     row:Show()
@@ -312,7 +314,7 @@ function H.ShowDetail(key)
     return
   end
   d.heading:SetText(string.format("%s  -  %s / %s / %s", U.RunDisplayName(rec), rec.CharacterRun_StartZone or "?", ST.Compare.ClassLabel(rec.CharacterRun_ClassFile), ST.Data.PatternOf(rec)))
-  d.sub:SetText(string.format("Level %s   Active %s   Played %s%s", tostring(rec.CharacterRun_Level or "?"), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total), rec.CharacterRun_Frozen and "   |cff8888aafrozen at 60|r" or ""))
+  d.sub:SetText(string.format("Level %s   Active %s   Played %s   Client %s   Mode %s%s", tostring(rec.CharacterRun_Level or "?"), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total), U.ClientLabel(rec), rec.CharacterRun_Mode or "unknown", rec.CharacterRun_Frozen and "   |cff8888aafrozen at 60|r" or ""))
   local rows = MilestoneRows(rec)
   for i, it in ipairs(rows) do
     local row = AcquireDetailRow(i)
@@ -345,7 +347,8 @@ function H.NamePattern(key)
   v[2]:SetText(rec.CharacterRun_StartZone or "?")
   v[3]:SetText(ST.Compare.ClassLabel(rec.CharacterRun_ClassFile))
   v[4]:SetText(tostring(rec.CharacterRun_Level or "?"))
-  v[5]:SetText(rec.CharacterRun_Pattern or ("|cff777777" .. ST.Data.DefaultPattern .. "|r"))
+  v[5]:SetText(U.ClientLabel(rec))
+  v[6]:SetText(rec.CharacterRun_Pattern or ("|cff777777" .. ST.Data.DefaultPattern .. "|r"))
   f.edit:SetText(rec.CharacterRun_Pattern or "")
   f:Show()
   f.edit:SetFocus(); f.edit:HighlightText()
@@ -358,7 +361,7 @@ local nameDialog
 function H.NamePatternDialog()
   if nameDialog then return nameDialog end
   local f = CreateFrame("Frame", "VelocityNamePatternDialog", UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
-  f:SetSize(380, 222)
+  f:SetSize(380, 239)
   f:SetPoint("CENTER", 0, 120)
   f:SetFrameStrata("FULLSCREEN_DIALOG"); f:SetToplevel(true)
   f:EnableMouse(true); f:SetMovable(true); f:RegisterForDrag("LeftButton")
@@ -374,7 +377,7 @@ function H.NamePatternDialog()
   f.title = T.Text(f, 15); f.title:SetPoint("TOPLEFT", 12, -10); f.title:SetText("Route pattern")
 
   -- fact block: dim label column + value column
-  local FACTS = { "Character", "Start zone", "Class", "Level", "Current pattern" }
+  local FACTS = { "Character", "Start zone", "Class", "Level", "Client", "Current pattern" }
   f.facts = {}
   local y = -34
   for i, label in ipairs(FACTS) do
@@ -428,7 +431,7 @@ end
 
 function H.CopyAsText(key)
   local rec = ST.db.Characters[key]; if not rec then return end
-  local parts = { string.format("%s %s %s mode=%s %s L%s active=%s played=%s |", rec.CharacterRun_Name, rec.CharacterRun_StartZone, rec.CharacterRun_ClassFile, rec.CharacterRun_Mode or "unknown", ST.Data.PatternOf(rec), tostring(rec.CharacterRun_Level), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total)) }
+  local parts = { string.format("%s %s %s mode=%s client=%s %s L%s active=%s played=%s |", rec.CharacterRun_Name, rec.CharacterRun_StartZone, rec.CharacterRun_ClassFile, rec.CharacterRun_Mode or "unknown", (rec.CharacterRun_ClientFlavour or "unknown") .. (rec.CharacterRun_ClientVersion and ("/" .. rec.CharacterRun_ClientVersion) or ""), ST.Data.PatternOf(rec), tostring(rec.CharacterRun_Level), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total)) }
   for _, it in ipairs(MilestoneRows(rec)) do
     if not it.Inferred then parts[#parts + 1] = string.format("%s=%s", it.Label, U.FormatTime(it.Active)) end
   end

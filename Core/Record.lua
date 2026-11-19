@@ -88,6 +88,9 @@ function R.Current()
       CharacterRun_Mode = R.DetectMode(),
       CharacterRun_StartZone = D.RaceStartZone[raceFile] or "Unknown",
       CharacterRun_Pattern = nil,
+      CharacterRun_ClientFlavour = U.ClientInfo().Flavour,     -- "forever" | "era" | ... (refreshed each login below)
+      CharacterRun_ClientVersion = U.ClientInfo().Version,     -- "1.60.1"
+      CharacterRun_ClientInterface = U.ClientInfo().Interface, -- 16001
       CharacterRun_CreatedAt = time(),
       CharacterRun_Frozen = false,
       CharacterRun_Level = UnitLevel("player"),
@@ -101,6 +104,13 @@ function R.Current()
   rec.CharacterRun_Level = UnitLevel("player")
   -- Mode: fill in for records that pre-date this field; re-detect when it was unknown.
   if not rec.CharacterRun_Mode or rec.CharacterRun_Mode:find("unknown", 1, true) then rec.CharacterRun_Mode = R.DetectMode() end
+  -- Client flavour / version: a Forever (realmless) run and an Era run are different categories.
+  -- Stamped at creation and refreshed every login so the record reflects the client it was
+  -- last played on (the flavour never changes for a character; the version moves with patches).
+  do
+    local ci = U.ClientInfo()
+    rec.CharacterRun_ClientFlavour, rec.CharacterRun_ClientVersion, rec.CharacterRun_ClientInterface = ci.Flavour, ci.Version, ci.Interface
+  end
   -- Keep the display name current (records created before the two-name fix hold only "First").
   local display = U.CharacterDisplayName(); if display and display ~= "?" then rec.CharacterRun_Name = display end
   -- Self-heal: if the race wasn't in the table when first seen, try again each login.

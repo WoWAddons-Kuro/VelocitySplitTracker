@@ -70,6 +70,51 @@ function U.BuildLabel()
   return v
 end
 
+-- Which game client this is. Forever (realmless, 1.60.x / interface 16001) and Classic Era
+-- (realms, 1.15.x / 115xx) are fundamentally different speedrun categories, so the flavour and
+-- the version travel with every run record. Forever reports WOW_PROJECT_MAINLINE (or
+-- WOW_PROJECT_CAMELOT = 18 where defined) with a 1.60.x version, so the project id alone cannot
+-- tell it from Retail: the interface band decides.
+-- Returns { Flavour = "forever"|"era"|"classic"|"mists"|"mainline"|"unknown",
+--           Version = "1.60.1", Build = "12345", Interface = 16001 }.
+local clientInfo
+function U.ClientInfo()
+  if clientInfo then return clientInfo end
+  local version, build, _, interface
+  if GetBuildInfo then version, build, _, interface = GetBuildInfo() end
+  interface = tonumber(interface) or 0
+  local flavour = "unknown"
+  local pid = WOW_PROJECT_ID
+  if WOW_PROJECT_CAMELOT and pid == WOW_PROJECT_CAMELOT then flavour = "forever"
+  elseif pid == WOW_PROJECT_CLASSIC then flavour = "era"
+  elseif WOW_PROJECT_MISTS_CLASSIC and pid == WOW_PROJECT_MISTS_CLASSIC then flavour = "mists"
+  elseif pid == WOW_PROJECT_MAINLINE and interface >= 16000 and interface < 20000 then flavour = "forever"
+  elseif pid == WOW_PROJECT_MAINLINE then flavour = "mainline"
+  elseif interface >= 11000 and interface < 12000 then flavour = "era"
+  elseif interface >= 20000 and interface < 100000 then flavour = "classic"   -- TBC / Wrath / Cata progression clients
+  end
+  clientInfo = { Flavour = flavour, Version = tostring(version or "?"), Build = tostring(build or "?"), Interface = interface }
+  return clientInfo
+end
+
+-- "Forever" / "Classic Era" / ... from a flavour key.
+local FLAVOUR_LABEL = { forever = "Forever", era = "Classic Era", classic = "Classic", mists = "Mists", mainline = "Retail", unknown = "?" }
+function U.ClientFlavourLabel(flavour)
+  if flavour == nil or flavour == "" then return "?" end
+  return FLAVOUR_LABEL[flavour] or flavour
+end
+
+-- "Forever 1.60.1" for a run record; "?" when the record pre-dates the field (and is not a
+-- reference, which may legitimately not state its client).
+function U.ClientLabel(rec, short)
+  if not rec then return "?" end
+  local flavour = U.ClientFlavourLabel(rec.CharacterRun_ClientFlavour)
+  local version = rec.CharacterRun_ClientVersion
+  if short and flavour == "Classic Era" then flavour = "Era" end
+  if version and version ~= "" and version ~= "?" then return flavour .. " " .. version end
+  return flavour
+end
+
 function U.Print(msg, ...)
   if select("#", ...) > 0 then msg = string.format(msg, ...) end
   print("|cff5ad65aVelocity|r: " .. msg)

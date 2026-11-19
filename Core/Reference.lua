@@ -23,9 +23,9 @@ function R.ParseTime(s)
 end
 
 -- Parse the import text. Grammar (whitespace / newlines / ; / , separated tokens):
---   name="Human Pally 55m"   zone="Elwynn Forest"   class=PALADIN   mode=pve   pattern="no-ah"
+--   name="Human Pally 55m"   zone="Elwynn Forest"   class=PALADIN   mode=pve   pattern="no-ah"   client=forever/1.60.1
 --   level:4=7:58   (any milestone key = time)   or shorthand   4=7:58  /  L4 7:58  /  "level 4 - 7:58"
--- Returns spec { Name, Zone, Class, Mode, Pattern, Splits = { [key] = seconds } }, or nil + error.
+-- Returns spec { Name, Zone, Class, Mode, Pattern, ClientFlavour, ClientVersion, Splits = { [key] = seconds } }, or nil + error.
 function R.ParseText(text)
   local spec = { Splits = {} }
   -- key="quoted value" / key=value
@@ -33,7 +33,7 @@ function R.ParseText(text)
   local stripped = text:gsub('(%a+)%s*=%s*"[^"]*"', " ")
   for k, v in stripped:gmatch("(%a+)%s*=%s*([^%s;,]+)") do
     local lk = k:lower()
-    if lk == "name" or lk == "zone" or lk == "class" or lk == "mode" or lk == "pattern" then spec[lk] = v end
+    if lk == "name" or lk == "zone" or lk == "class" or lk == "mode" or lk == "pattern" or lk == "client" then spec[lk] = v end
   end
   -- explicit milestone keys: axis:id[:value]=time
   for key, t in stripped:gmatch("([%a]+:[%w_%.%-/]+)%s*=%s*([%d:%.]+)") do
@@ -52,6 +52,14 @@ function R.ParseText(text)
   if n == 0 then return nil, "no splits found (expected lines like 'level 4 - 7:58' or 'level:4=7:58')" end
   if not spec.name or spec.name == "" then return nil, 'missing name="..."' end
   spec.Name, spec.Zone, spec.Class, spec.Mode, spec.Pattern = spec.name, spec.zone or "Unknown", (spec.class or "ANY"):upper(), spec.mode or "unknown", spec.pattern
+  -- client=forever | era | forever/1.60.1 | "Classic Era 1.15.7"  ->  flavour key + optional version
+  if spec.client and spec.client ~= "" then
+    local c = spec.client:lower()
+    local flavour, version = c:match("^([%a%s]+)[/%s]+([%d%.]+)$")
+    flavour = (flavour or c):gsub("^%s+", ""):gsub("%s+$", "")
+    if flavour:find("forever", 1, true) then flavour = "forever" elseif flavour:find("era", 1, true) or flavour:find("classic", 1, true) then flavour = "era" end
+    spec.ClientFlavour, spec.ClientVersion = flavour, version
+  end
   return spec
 end
 
@@ -66,6 +74,9 @@ function R.Import(spec)
     CharacterRun_ClassFile = spec.Class ~= "ANY" and spec.Class or "UNKNOWN",
     CharacterRun_Race = nil,
     CharacterRun_Mode = spec.Mode,
+    -- client=forever|era[/version] in the import header; nil when not stated (a VOD often will not).
+    CharacterRun_ClientFlavour = spec.ClientFlavour,
+    CharacterRun_ClientVersion = spec.ClientVersion,
     CharacterRun_StartZone = spec.Zone,
     CharacterRun_Pattern = spec.Pattern,
     CharacterRun_CreatedAt = time(),
@@ -133,7 +144,7 @@ function R.ShowImport(prefill)
     local title = T.Text(frame, 16); title:SetPoint("TOPLEFT", 12, -10); title:SetText("Import reference run")
     local hint = T.Text(frame, T.FontSize - 1); hint:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4); hint:SetPoint("RIGHT", -12, 0)
     hint:SetJustifyH("LEFT"); T.SetColour(hint, T.Colour.TextDim)
-    hint:SetText('One header line, then one split per line.  name="..." zone="..." class=PALADIN mode=pve   |   level 4 - 7:58   or   level:4=7:58')
+    hint:SetText('One header line, then one split per line.  name="..." zone="..." class=PALADIN mode=pve client=forever/1.60.1   |   level 4 - 7:58   or   level:4=7:58')
     local scroll = CreateFrame("ScrollFrame", nil, frame, "UIPanelScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", 12, -52); scroll:SetPoint("BOTTOMRIGHT", -30, 44)
     -- visible text-field background behind the scroll area

@@ -44,7 +44,7 @@ function V.Done(limit)
     -- Gold = a true record: faster than every candidate (not just the reference run).
     item.Gold = ST.Compare.IsRecord(item.Key, item.Time)
     -- Level rows also carry the (n-1 -> n) segment delta so "am I bleeding time right now?" reads on the row itself.
-    if item.Axis == "level" then item.SegmentDelta = V.SegmentDelta(tonumber((D.ParseKey(item.Key)))) end
+    if item.Axis == "level" then item.SegmentDelta = V.SegmentDelta(tonumber((select(2, D.ParseKey(item.Key))))) end
     out[#out + 1] = item
   end
   -- Guarantee the previous level row. It is exempt from the done-window: use the recorded
@@ -246,10 +246,13 @@ end
 -- Delta of the level (n-1 -> n) segment vs the comparison segment for that level, or nil when
 -- either end of our segment is inferred or the comparison has no such segment.
 function V.SegmentDelta(n)
+  n = tonumber(n)
+  if not n then return nil end
   local rec = ST.Record.Current()
   local field = ClockField()
   local b = rec.Milestones[D.Key("level", n)]
-  local a = n > 2 and rec.Milestones[D.Key("level", n - 1)] or { [field] = 0 }
+  -- Level 1 is the run start (clock 0). Above that the previous ding must be a real milestone.
+  local a = (n <= 2) and { [field] = 0 } or rec.Milestones[D.Key("level", n - 1)]
   if not b or b.Inferred or not a or a.Inferred then return nil end
   local best = ST.Compare.BestLevelSegment(n)
   if not best then return nil end
