@@ -461,7 +461,11 @@ local function CheckBags(baseline)
       ST.Record.Hit(D.Key("bags", step), D.BagStepLabel(step), { Inferred = inferred })
     end
   end
-  if not baseline and now > (lastBagSlots or 0) then M.Attention().Bags = time() end
+  if not baseline and now > (lastBagSlots or 0) then
+    M.Attention().Bags = time()
+    -- the row is time-gated only: refresh when the window lapses so it drops on time
+    C_Timer.After((ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds) + 0.5, function() if ST.Live then ST.Live.QueueRefresh() end end)
+  end
   lastBagSlots = now
   if ST.Live then ST.Live.QueueRefresh() end
 end

@@ -175,19 +175,15 @@ function V.Upcoming(limit)
     end
   end
 
-  -- Bag slots: next 6-slot step. Shown while a bag was recently equipped (recent-progress rule)
-  -- or when within Attention_NearPct of the next step (sticky). Fixed axis (bounded cardinality).
+  -- Extra bag slots: next 6-slot step. Shown ONLY for Attention_RecentSeconds after a bag change
+  -- (never sticky by nearness: being 1 slot short of a step is not a reason to show it).
   do
     local nextStep = ST.Milestones.NextBagStep()
-    if nextStep then
+    if nextStep and ST.Milestones.BagsRecentlyProgressed() then
       local have = rec.BagSlots_Max or ST.Milestones.BagSlotsNow() or 0
-      local frac = have / nextStep
-      local near = frac >= (cfg.Attention_NearPct or D.Attention_NearPct)
-      if near or ST.Milestones.BagsRecentlyProgressed() then
-        local key = D.Key("bags", nextStep)
-        out[#out + 1] = { Key = key, Axis = "bags", Icon = D.BagIcon, Label = "Extra Bag Slots - " .. have .. " of " .. nextStep, Best = ST.Compare.Best(key),
-          Progress = frac, ProgressText = have .. "/" .. nextStep, Sticky = near, LastProgress = ST.Milestones.Attention().Bags }
-      end
+      local key = D.Key("bags", nextStep)
+      out[#out + 1] = { Key = key, Axis = "bags", Icon = D.BagIcon, Label = "Extra Bag Slots - " .. have .. " of " .. nextStep, Best = ST.Compare.Best(key),
+        Progress = have / nextStep, ProgressText = have .. "/" .. nextStep, LastProgress = ST.Milestones.Attention().Bags }
     end
   end
 
