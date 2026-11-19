@@ -185,7 +185,7 @@ function V.Upcoming(limit)
       local near = frac >= (cfg.Attention_NearPct or D.Attention_NearPct)
       if near or ST.Milestones.BagsRecentlyProgressed() then
         local key = D.Key("bags", nextStep)
-        out[#out + 1] = { Key = key, Axis = "bags", Icon = D.BagIcon, Label = "Bag Slots - " .. have .. " of " .. nextStep, Best = ST.Compare.Best(key),
+        out[#out + 1] = { Key = key, Axis = "bags", Icon = D.BagIcon, Label = "Extra Bag Slots - " .. have .. " of " .. nextStep, Best = ST.Compare.Best(key),
           Progress = frac, ProgressText = have .. "/" .. nextStep, Sticky = near, LastProgress = ST.Milestones.Attention().Bags }
       end
     end

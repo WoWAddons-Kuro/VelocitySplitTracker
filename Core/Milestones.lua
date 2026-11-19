@@ -417,8 +417,8 @@ function M.GoldRecentlyProgressed()
 end
 
 ------------------------------------------------------------------------
--- Bag slots: total container slots (backpack + 4 equipped bags). Splits every 6 slots
--- (bags:22, bags:28, ...). Login baseline is inferred; a later increase is a real split.
+-- Extra bag slots: slots in the 4 equipped bags (backpack excluded). Splits every 6 extra slots
+-- (bags:6, bags:12, ...). Login baseline is inferred; a later increase is a real split.
 -- The count only ever matters when it GROWS (swapping a 6-slot for a 10-slot crosses a step).
 ------------------------------------------------------------------------
 local lastBagSlots = nil
@@ -428,7 +428,7 @@ function M.BagSlotsNow()
   local getSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
   if not getSlots then return nil end
   local last = NUM_BAG_SLOTS or 4
-  for bag = 0, last do total = total + (getSlots(bag) or 0) end
+  for bag = 1, last do total = total + (getSlots(bag) or 0) end   -- bag 0 = backpack, not counted
   return total
 end
 
@@ -443,6 +443,14 @@ local function CheckBags(baseline)
   local now = M.BagSlotsNow()
   if not now then return end
   local rec = ST.Record.Current()
+  if baseline and not rec.BagSlots_IsExtra then
+    -- One-time migration from the "total slots incl. backpack" scheme: drop its keys and mark.
+    for key in pairs(rec.Milestones) do
+      local axis, id = D.ParseKey(key)
+      if axis == "bags" and (tonumber(id) or 0) > D.BagSlots_Max then rec.Milestones[key] = nil end
+    end
+    rec.BagSlots_Max, rec.BagSlots_IsExtra = nil, true
+  end
   local prev = rec.BagSlots_Max or 0
   if now <= prev and not baseline then lastBagSlots = now; return end
   if now > prev then rec.BagSlots_Max = now end

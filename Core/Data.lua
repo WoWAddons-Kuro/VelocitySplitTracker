@@ -76,13 +76,16 @@ D.GoldIcon = "Interface\\Icons\\INV_Misc_Coin_02"
 -- Steps every 6 slots from the first upgrade (22) up to the 4 x 20 cap (96). A bag swap that
 -- crosses several steps at once fires them all (only the last is "the" split; earlier ones are
 -- real too - they were reached at that moment).
-D.BagSlots_Base = 16
+-- Extra bag slots: slots in the four EQUIPPED bags only (the backpack is a constant everyone has
+-- and is not counted). Steps every 6 extra slots (6, 12, 18, ... 80 = 4 x 20). A bag swap that
+-- crosses several steps at once fires them all (each was reached at that moment).
+-- Key bags:<extra>. (Keys from the short-lived "total slots" scheme, bags:22..96, are purged.)
 D.BagSlots_Step = 6
-D.BagSlots_Max = 96
+D.BagSlots_Max = 80
 D.BagSlots_Steps = {}
-for n = D.BagSlots_Base + D.BagSlots_Step, D.BagSlots_Max, D.BagSlots_Step do D.BagSlots_Steps[#D.BagSlots_Steps + 1] = n end
+for n = D.BagSlots_Step, D.BagSlots_Max, D.BagSlots_Step do D.BagSlots_Steps[#D.BagSlots_Steps + 1] = n end
 D.BagIcon = "Interface\\Icons\\INV_Misc_Bag_08"
-function D.BagStepLabel(n) return "Bag Slots - " .. n end
+function D.BagStepLabel(n) return "Extra Bag Slots - " .. n end
 -- "1s", "10s", "1g", "10g", ... for a step; "7s 42c" style for arbitrary amounts.
 function D.FormatCopper(copper, short)
   copper = math.floor(copper or 0)
