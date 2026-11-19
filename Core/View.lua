@@ -15,6 +15,7 @@ local function MilestoneLabel(key, m)
   if axis == "skill" then return id .. " " .. value end
   if axis == "quest" then return ST.Milestones.QuestTitle(tonumber(id)) or ("Quest " .. id) end
   if axis == "kill" then return ST.Milestones.CreatureName(tonumber(id)) or ("Kill " .. id) end
+  if axis == "bags" then return D.BagStepLabel(id) end
   return key
 end
 
@@ -174,6 +175,22 @@ function V.Upcoming(limit)
     end
   end
 
+  -- Bag slots: next 6-slot step. Shown while a bag was recently equipped (recent-progress rule)
+  -- or when within Attention_NearPct of the next step (sticky). Fixed axis (bounded cardinality).
+  do
+    local nextStep = ST.Milestones.NextBagStep()
+    if nextStep then
+      local have = rec.BagSlots_Max or ST.Milestones.BagSlotsNow() or 0
+      local frac = have / nextStep
+      local near = frac >= (cfg.Attention_NearPct or D.Attention_NearPct)
+      if near or ST.Milestones.BagsRecentlyProgressed() then
+        local key = D.Key("bags", nextStep)
+        out[#out + 1] = { Key = key, Axis = "bags", Icon = D.BagIcon, Label = "Bag Slots - " .. have .. " of " .. nextStep, Best = ST.Compare.Best(key),
+          Progress = frac, ProgressText = have .. "/" .. nextStep, Sticky = near, LastProgress = ST.Milestones.Attention().Bags }
+      end
+    end
+  end
+
   -- riding
   if level >= (cfg.RidingShowFromLevel or D.RidingShowFromLevel) then
     local rank = ST.Milestones.RidingRank()
@@ -208,7 +225,7 @@ function V.Upcoming(limit)
   -- Two groups. FIXED axes (professions, learn, riding, mounted, money) have bounded cardinality
   -- and are NEVER capped. VARIABLE axes (quests, areas, kills, locations) compete for the capped
   -- slots, ordered by most recent progress (sticky rows count as current).
-  local FIXED_AXES = { skill = true, learn = true, riding = true, mounted = true, gold = true }
+  local FIXED_AXES = { skill = true, learn = true, riding = true, mounted = true, gold = true, bags = true }
   local levelRow = out[1] and out[1].Current and table.remove(out, 1) or nil
   local fixed, variable = {}, {}
   for _, it in ipairs(out) do

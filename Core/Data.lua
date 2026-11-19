@@ -71,6 +71,18 @@ D.SkillNearPct, D.SkillActiveSeconds = D.Attention_NearPct, D.Attention_RecentSe
 -- Gold acquired (cumulative copper from loot/vendor; mail and trade excluded), exponential steps.
 D.GoldSteps_Copper = { 100, 1000, 10000, 100000, 1000000, 10000000 }   -- 1s 10s 1g 10g 100g 1000g
 D.GoldIcon = "Interface\\Icons\\INV_Misc_Coin_02"
+
+-- Bag slots: total container slots across the backpack (16) and the four equipped bags.
+-- Steps every 6 slots from the first upgrade (22) up to the 4 x 20 cap (96). A bag swap that
+-- crosses several steps at once fires them all (only the last is "the" split; earlier ones are
+-- real too - they were reached at that moment).
+D.BagSlots_Base = 16
+D.BagSlots_Step = 6
+D.BagSlots_Max = 96
+D.BagSlots_Steps = {}
+for n = D.BagSlots_Base + D.BagSlots_Step, D.BagSlots_Max, D.BagSlots_Step do D.BagSlots_Steps[#D.BagSlots_Steps + 1] = n end
+D.BagIcon = "Interface\\Icons\\INV_Misc_Bag_08"
+function D.BagStepLabel(n) return "Bag Slots - " .. n end
 -- "1s", "10s", "1g", "10g", ... for a step; "7s 42c" style for arbitrary amounts.
 function D.FormatCopper(copper, short)
   copper = math.floor(copper or 0)
@@ -108,6 +120,7 @@ D.AxisIcon = {
   kill  = "Interface\\Icons\\Ability_DualWield",
   skill = nil,          -- resolved per skill via SkillIcon
   gold  = "Interface\\Icons\\INV_Misc_Coin_02",
+  bags  = "Interface\\Icons\\INV_Misc_Bag_08",
   learn = nil,          -- resolved per skill via SkillIcon
   death = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_8",   -- skull
   riding = nil, mounted = nil, zone = nil, manual = nil,

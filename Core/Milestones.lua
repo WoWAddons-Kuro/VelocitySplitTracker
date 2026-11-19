@@ -417,6 +417,54 @@ function M.GoldRecentlyProgressed()
 end
 
 ------------------------------------------------------------------------
+-- Bag slots: total container slots (backpack + 4 equipped bags). Splits every 6 slots
+-- (bags:22, bags:28, ...). Login baseline is inferred; a later increase is a real split.
+-- The count only ever matters when it GROWS (swapping a 6-slot for a 10-slot crosses a step).
+------------------------------------------------------------------------
+local lastBagSlots = nil
+
+function M.BagSlotsNow()
+  local total = 0
+  local getSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
+  if not getSlots then return nil end
+  local last = NUM_BAG_SLOTS or 4
+  for bag = 0, last do total = total + (getSlots(bag) or 0) end
+  return total
+end
+
+function M.NextBagStep()
+  local now = ST.Record.Current().BagSlots_Max or M.BagSlotsNow() or 0
+  for _, step in ipairs(D.BagSlots_Steps) do if now < step then return step end end
+  return nil
+end
+
+-- Record the high-water mark and fire any steps it has passed. baseline=true -> inferred.
+local function CheckBags(baseline)
+  local now = M.BagSlotsNow()
+  if not now then return end
+  local rec = ST.Record.Current()
+  local prev = rec.BagSlots_Max or 0
+  if now <= prev and not baseline then lastBagSlots = now; return end
+  if now > prev then rec.BagSlots_Max = now end
+  for _, step in ipairs(D.BagSlots_Steps) do
+    if now >= step then
+      -- On a live increase, only steps above the previous high-water mark are new splits.
+      local inferred = baseline or step <= prev
+      ST.Record.Hit(D.Key("bags", step), D.BagStepLabel(step), { Inferred = inferred })
+    end
+  end
+  if not baseline and now > (lastBagSlots or 0) then M.Attention().Bags = time() end
+  lastBagSlots = now
+  if ST.Live then ST.Live.QueueRefresh() end
+end
+function M.SeedBags() CheckBags(true) end
+
+function M.BagsRecentlyProgressed()
+  local t = M.Attention().Bags
+  return t ~= nil and (time() - t) < (ST.db.Config.Attention_RecentSeconds or D.Attention_RecentSeconds)
+end
+
+------------------------------------------------------------------------
 -- Zone
 ------------------------------------------------------------------------
 local function OnZone()
@@ -467,6 +515,9 @@ function M.Init()
   Reg("PLAYER_XP_UPDATE")
   Reg("PLAYER_TARGET_CHANGED")
   Reg("PLAYER_MONEY")
+  Reg("BAG_UPDATE_DELAYED")        -- fires once after a batch of bag changes (equipping a bag included)
+  Reg("BAG_CONTAINER_UPDATE")      -- Mainline: bag slot count changed
+  Reg("PLAYER_EQUIPMENT_CHANGED")  -- fallback: a bag slot is equipment on Classic clients
   Reg("ZONE_CHANGED")
   Reg("ZONE_CHANGED_INDOORS")
   Reg("PLAYER_DEAD")
@@ -538,6 +589,9 @@ function M.Init()
       M.NoteTarget()
     elseif event == "PLAYER_MONEY" then
       OnMoney()
+    elseif event == "BAG_UPDATE_DELAYED" or event == "BAG_CONTAINER_UPDATE" or event == "PLAYER_EQUIPMENT_CHANGED" then
+      -- only fires after the login baseline has been taken (SeedBags)
+      if lastBagSlots ~= nil then CheckBags(false) end
     elseif event == "PLAYER_ENTERING_WORLD" then
       C_Timer.After(3, function()
         local o = U.Phase("Milestones.enterworld+3s")
@@ -545,6 +599,7 @@ function M.Init()
         U.InPhase("CheckSkills", M.CheckSkills)
         U.InPhase("CheckRiding", M.CheckRiding)
         U.InPhase("SeedMoney", M.SeedMoney)
+        U.InPhase("SeedBags", M.SeedBags)
         U.InPhase("OnZone", OnZone)
         U.InPhase("OnArea", OnArea)   -- baseline: the login area is inferred, not entered
         U.PhaseEnd(o)

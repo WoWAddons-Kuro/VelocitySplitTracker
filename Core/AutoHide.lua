@@ -15,7 +15,7 @@ A.AxisGroup = {
   level = "level",
   quest = "quest", questaccept = "quest",
   skill = "skill", learn = "skill",
-  gold  = "gold",
+  gold  = "gold", bags = "gold",   -- bag upgrades are an economy milestone; share the Money toggle
   zone  = "zone", area = "zone",
 }
 A.Groups = { "level", "quest", "skill", "gold", "zone" }

@@ -102,6 +102,7 @@ function R.Import(spec)
     elseif axis == "learn" then rec.Milestones[mkey].Label = "Learned " .. tostring(id):gsub("_", " ")
     elseif axis == "kill" then rec.Milestones[mkey].Label = tostring(value or id):gsub("_", " ")
     elseif axis == "gold" then rec.Milestones[mkey].Label = "Money Acquired - " .. D.FormatCopper(tonumber(id) or 0, true)
+    elseif axis == "bags" then rec.Milestones[mkey].Label = D.BagStepLabel(id)
     end
     if secs > maxTime then maxTime = secs end
   end
