@@ -9,5 +9,5 @@
 - Two clocks: Active (idle-aware) and Played; both shown, seconds in lockstep.
 - Data window: By Level / By Class / By Start Zone pivots and History with Kills/min, XP/min and Where per split.
 - Records keyed by character GUID; game mode (pve / pvp / hardcore-*) stored per run.
-- Client flavour and version (Forever 1.60.x vs Classic Era 1.15.x) stored per run and shown in History (Client column, detail line, pattern dialog, copy-as-text `client=`); reference imports accept `client=forever/1.60.1`. `/split status` reports the client. Realmless Forever runs and Era runs are different categories.
+- Client flavour and version (Forever 1.60.x vs Classic Era 1.15.x) stored per run - first-played version (write-once, the category), last-played version, and every version touched - and shown in History (Client column, detail line, pattern dialog, copy-as-text `client=`); reference imports accept `client=forever/1.60.1`. `/split status` reports the client. Realmless Forever runs and Era runs are different categories.
 - Fixed: `View.lua:252 attempt to compare number with nil` spam after a ding - the done-row level delta parsed the milestone key's axis instead of its level number (`tonumber("level")`); `SegmentDelta` now also returns nil instead of a bogus full-elapsed segment when the previous level's ding is missing.

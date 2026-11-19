@@ -73,8 +73,11 @@ VelocitySplitTrackerDB = {
       CharacterRun_Race       = "NightElf",
       CharacterRun_Mode       = "pve",        -- pve | pvp | hardcore-pve | hardcore-pvp | unknown; travels with exports so others can align categories. /split mode overrides.
       CharacterRun_ClientFlavour   = "forever", -- forever | era | classic | mists | mainline | unknown. Forever (realmless) and Era (realms) are different categories; stamped at creation, refreshed each login (Util.ClientInfo: WOW_PROJECT_ID + interface band; Forever = MAINLINE/CAMELOT with 16000 <= interface < 20000).
-      CharacterRun_ClientVersion   = "1.60.1",  -- GetBuildInfo() version, refreshed each login (the client the run was LAST played on)
-      CharacterRun_ClientInterface = 16001,     -- GetBuildInfo() interface number
+      CharacterRun_ClientVersion_First   = "1.60.1",  -- GetBuildInfo() version at run start (write-once; THE category version). Legacy records seed it on first login after upgrade.
+      CharacterRun_ClientInterface_First = 16001,
+      CharacterRun_ClientVersion   = "1.60.3",  -- version LAST played on, refreshed each login
+      CharacterRun_ClientInterface = 16003,
+      CharacterRun_ClientVersions  = { ["1.60.1"] = 1763300000, ["1.60.3"] = 1763900000 },  -- every version the run touched -> time() first seen on it. History shows "Forever 1.60.1 -> 1.60.3 (1.60.1, 1.60.3)".
       CharacterRun_StartZone  = "Teldrassil",  -- StartZone_Key, resolved once from race (table), fallback first zone seen
       CharacterRun_Pattern    = nil,          -- RunPattern_Name set by the player in History (nil = "personal", the unnamed bucket)
       CharacterRun_CreatedAt  = 1763300000,   -- time() at first sight

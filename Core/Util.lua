@@ -104,15 +104,31 @@ function U.ClientFlavourLabel(flavour)
   return FLAVOUR_LABEL[flavour] or flavour
 end
 
--- "Forever 1.60.1" for a run record; "?" when the record pre-dates the field (and is not a
--- reference, which may legitimately not state its client).
+-- "Forever 1.60.1" for a run record, using the FIRST-played version (the speedrun category);
+-- "Forever 1.60.1 -> 1.60.3" (short: "Forever 1.60.1+") when later played on a newer client. "?" when
+-- the record pre-dates the field (a reference may legitimately not state its client).
 function U.ClientLabel(rec, short)
   if not rec then return "?" end
   local flavour = U.ClientFlavourLabel(rec.CharacterRun_ClientFlavour)
-  local version = rec.CharacterRun_ClientVersion
+  local first = rec.CharacterRun_ClientVersion_First or rec.CharacterRun_ClientVersion   -- first-played = the category
+  local last = rec.CharacterRun_ClientVersion                                           -- last-played
   if short and flavour == "Classic Era" then flavour = "Era" end
-  if version and version ~= "" and version ~= "?" then return flavour .. " " .. version end
-  return flavour
+  if not first or first == "" or first == "?" then return flavour end
+  local text = flavour .. " " .. first
+  if last and last ~= first then text = text .. (short and "+" or (" -> " .. last)) end   -- run spans a patch
+  return text
+end
+
+-- Every client version a run was played on, oldest first: "1.60.1, 1.60.2, 1.60.3".
+function U.ClientVersionsLabel(rec)
+  local set = rec and rec.CharacterRun_ClientVersions
+  if not set then return (rec and rec.CharacterRun_ClientVersion) or "?" end
+  local list = {}
+  for v, at in pairs(set) do list[#list + 1] = { v = v, at = at or 0 } end
+  table.sort(list, function(a, b) if a.at ~= b.at then return a.at < b.at end return a.v < b.v end)
+  local out = {}
+  for i, e in ipairs(list) do out[i] = e.v end
+  return table.concat(out, ", ")
 end
 
 function U.Print(msg, ...)

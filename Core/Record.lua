@@ -88,9 +88,12 @@ function R.Current()
       CharacterRun_Mode = R.DetectMode(),
       CharacterRun_StartZone = D.RaceStartZone[raceFile] or "Unknown",
       CharacterRun_Pattern = nil,
-      CharacterRun_ClientFlavour = U.ClientInfo().Flavour,     -- "forever" | "era" | ... (refreshed each login below)
-      CharacterRun_ClientVersion = U.ClientInfo().Version,     -- "1.60.1"
-      CharacterRun_ClientInterface = U.ClientInfo().Interface, -- 16001
+      CharacterRun_ClientFlavour = U.ClientInfo().Flavour,           -- "forever" | "era" | ...
+      CharacterRun_ClientVersion_First = U.ClientInfo().Version,     -- "1.60.1" at run start (write-once)
+      CharacterRun_ClientInterface_First = U.ClientInfo().Interface, -- 16001 at run start
+      CharacterRun_ClientVersion = U.ClientInfo().Version,           -- last played (refreshed each login below)
+      CharacterRun_ClientInterface = U.ClientInfo().Interface,
+      CharacterRun_ClientVersions = { [U.ClientInfo().Version] = time() },  -- every version touched -> first seen
       CharacterRun_CreatedAt = time(),
       CharacterRun_Frozen = false,
       CharacterRun_Level = UnitLevel("player"),
@@ -104,12 +107,25 @@ function R.Current()
   rec.CharacterRun_Level = UnitLevel("player")
   -- Mode: fill in for records that pre-date this field; re-detect when it was unknown.
   if not rec.CharacterRun_Mode or rec.CharacterRun_Mode:find("unknown", 1, true) then rec.CharacterRun_Mode = R.DetectMode() end
-  -- Client flavour / version: a Forever (realmless) run and an Era run are different categories.
-  -- Stamped at creation and refreshed every login so the record reflects the client it was
-  -- last played on (the flavour never changes for a character; the version moves with patches).
+  -- Client flavour / version: a Forever (realmless) run and an Era run are different categories,
+  -- and a run that spans a client patch is a different run than one inside a single version.
+  --   CharacterRun_ClientFlavour       flavour (never changes for a character)
+  --   CharacterRun_ClientVersion_First first version this run was recorded on (write-once; the speedrun category)
+  --   CharacterRun_ClientVersion       version LAST played on (refreshed each login)
+  --   CharacterRun_ClientVersions      { ["1.60.1"] = firstSeenEpoch, ... } every version the run touched
+  -- Legacy records (pre-field) are seeded with the current client on first login after upgrade.
   do
     local ci = U.ClientInfo()
     rec.CharacterRun_ClientFlavour, rec.CharacterRun_ClientVersion, rec.CharacterRun_ClientInterface = ci.Flavour, ci.Version, ci.Interface
+    if not rec.CharacterRun_ClientVersion_First then
+      rec.CharacterRun_ClientVersion_First = ci.Version
+      rec.CharacterRun_ClientInterface_First = ci.Interface
+    end
+    rec.CharacterRun_ClientVersions = rec.CharacterRun_ClientVersions or {}
+    if not rec.CharacterRun_ClientVersions[ci.Version] then
+      rec.CharacterRun_ClientVersions[ci.Version] = time()
+      if next(rec.CharacterRun_ClientVersions, next(rec.CharacterRun_ClientVersions)) then U.Print("client version %s (run started on %s)", ci.Version, tostring(rec.CharacterRun_ClientVersion_First)) end
+    end
   end
   -- Keep the display name current (records created before the two-name fix hold only "First").
   local display = U.CharacterDisplayName(); if display and display ~= "?" then rec.CharacterRun_Name = display end

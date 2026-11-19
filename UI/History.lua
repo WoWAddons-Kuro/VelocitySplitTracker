@@ -314,7 +314,7 @@ function H.ShowDetail(key)
     return
   end
   d.heading:SetText(string.format("%s  -  %s / %s / %s", U.RunDisplayName(rec), rec.CharacterRun_StartZone or "?", ST.Compare.ClassLabel(rec.CharacterRun_ClassFile), ST.Data.PatternOf(rec)))
-  d.sub:SetText(string.format("Level %s   Active %s   Played %s   Client %s   Mode %s%s", tostring(rec.CharacterRun_Level or "?"), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total), U.ClientLabel(rec), rec.CharacterRun_Mode or "unknown", rec.CharacterRun_Frozen and "   |cff8888aafrozen at 60|r" or ""))
+  d.sub:SetText(string.format("Level %s   Active %s   Played %s   Client %s   Mode %s%s", tostring(rec.CharacterRun_Level or "?"), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total), U.ClientLabel(rec) .. (rec.CharacterRun_ClientVersions and next(rec.CharacterRun_ClientVersions, next(rec.CharacterRun_ClientVersions)) and ("  |cff777777(" .. U.ClientVersionsLabel(rec) .. ")|r") or ""), rec.CharacterRun_Mode or "unknown", rec.CharacterRun_Frozen and "   |cff8888aafrozen at 60|r" or ""))
   local rows = MilestoneRows(rec)
   for i, it in ipairs(rows) do
     local row = AcquireDetailRow(i)
@@ -431,7 +431,7 @@ end
 
 function H.CopyAsText(key)
   local rec = ST.db.Characters[key]; if not rec then return end
-  local parts = { string.format("%s %s %s mode=%s client=%s %s L%s active=%s played=%s |", rec.CharacterRun_Name, rec.CharacterRun_StartZone, rec.CharacterRun_ClassFile, rec.CharacterRun_Mode or "unknown", (rec.CharacterRun_ClientFlavour or "unknown") .. (rec.CharacterRun_ClientVersion and ("/" .. rec.CharacterRun_ClientVersion) or ""), ST.Data.PatternOf(rec), tostring(rec.CharacterRun_Level), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total)) }
+  local parts = { string.format("%s %s %s mode=%s client=%s %s L%s active=%s played=%s |", rec.CharacterRun_Name, rec.CharacterRun_StartZone, rec.CharacterRun_ClassFile, rec.CharacterRun_Mode or "unknown", (rec.CharacterRun_ClientFlavour or "unknown") .. ((rec.CharacterRun_ClientVersion_First or rec.CharacterRun_ClientVersion) and ("/" .. (rec.CharacterRun_ClientVersion_First or rec.CharacterRun_ClientVersion)) or "") .. (rec.CharacterRun_ClientVersion and rec.CharacterRun_ClientVersion_First and rec.CharacterRun_ClientVersion ~= rec.CharacterRun_ClientVersion_First and (" clientlast=" .. rec.CharacterRun_ClientVersion) or ""), ST.Data.PatternOf(rec), tostring(rec.CharacterRun_Level), U.FormatTime(rec.ActiveSeconds_Total), U.FormatTime(rec.PlayedSeconds_Total)) }
   for _, it in ipairs(MilestoneRows(rec)) do
     if not it.Inferred then parts[#parts + 1] = string.format("%s=%s", it.Label, U.FormatTime(it.Active)) end
   end
