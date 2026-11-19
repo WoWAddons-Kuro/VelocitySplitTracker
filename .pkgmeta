@@ -1,7 +1,6 @@
 package-as: VelocitySplitTracker
 
 enable-nolib-creation: no
-enable-toc-creation: yes
 
 manual-changelog: CHANGELOG.md
 
