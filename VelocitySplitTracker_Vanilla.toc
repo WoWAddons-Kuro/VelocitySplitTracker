@@ -1,0 +1,32 @@
+## Interface: 11509
+## Title: Velocity Split Tracker
+## Notes: Split tracker and auto-generated leveling guide in one. Times your levels, quests, kills, professions and money against your best runs or an imported reference - on an Active clock that stops when you walk away, so real-life interruptions don't count. Reminds you when a profession can be trained and shows the next milestone of the run you are chasing.
+## Author: Kuro
+## Version: @project-version@
+## SavedVariables: VelocitySplitTrackerDB, SplitTimerDB
+## OptionalDeps: LibStub, CallbackHandler-1.0, LibDataBroker-1.1, LibDBIcon-1.0
+## IconTexture: Interface\AddOns\VelocitySplitTracker\Assets\VelocitySplitTracker_Icon.tga
+## X-Website: https://github.com/WoWAddons-Kuro/VelocitySplitTracker
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+Core\Util.lua
+Core\Data.lua
+Core\Record.lua
+Core\Clock.lua
+Core\Compare.lua
+Core\Milestones.lua
+Core\Locations.lua
+Core\View.lua
+Core\Pivot.lua
+Core\Reference.lua
+Core\AutoHide.lua
+UI\Theme.lua
+UI\LiveWindow.lua
+UI\History.lua
+UI\DataWindow.lua
+UI\Config.lua
+VelocitySplitTracker.lua
