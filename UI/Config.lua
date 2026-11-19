@@ -159,6 +159,11 @@ function C.Create()
   win:Add(Check(win, "Always show deaths (softcore)",
     "Show the death counter in the footer even when it is 0. Off = only once you have died. Hardcore runs always show 'Hardcore' instead.",
     function() return Cfg().ShowDeathsSoftcore ~= false end, function(v) Cfg().ShowDeathsSoftcore = v end), 26)
+  -- RowsDoneLevels: how many past level splits stay pinned above the current level.
+  win:Add(Slider(win, "VelocityConfigRowsDoneLevels", 1, 4,
+    function() return math.max(1, math.min(4, Cfg().RowsDoneLevels or 1)) end,
+    function(v) Cfg().RowsDoneLevels = v; Refresh() end,
+    function(v) return "Past Level Splits to Show: " .. v end), 44, -10)
   -- Attention_RecentSeconds: how long a profession / money row stays up after its last gain
   -- (unless it is sticky for another reason: near the next step, trainable, or pinned).
   local D = ST.Data

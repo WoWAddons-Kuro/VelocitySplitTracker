@@ -55,6 +55,11 @@ local function CreateRow(parent)
   -- level segment delta "(+2:14)", one notch smaller, sits left of the cumulative delta
   row.segment = T.Text(row, T.FontSize - 2)
   row.segment:SetJustifyH("RIGHT")
+  -- level rows: "12.3k xp/hr", smaller and dim, just right of the label text. The label is
+  -- shrunk to its string width on level rows so this hugs "Level 10" instead of the column edge.
+  row.xp = T.Text(row, T.FontSize - 3)
+  row.xp:SetJustifyH("LEFT")
+  row.xp:SetWordWrap(false)
   return row
 end
 
@@ -65,7 +70,8 @@ local function LayoutRow(row, timesLeft)
   local p = T.Padding
   local hasDelta = (row.delta:GetText() or "") ~= ""
   local hasSegment = (row.segment:GetText() or "") ~= ""
-  row.icon:ClearAllPoints(); row.label:ClearAllPoints(); row.time:ClearAllPoints(); row.delta:ClearAllPoints(); row.segment:ClearAllPoints()
+  local hasXP = (row.xp:GetText() or "") ~= ""
+  row.icon:ClearAllPoints(); row.label:ClearAllPoints(); row.time:ClearAllPoints(); row.delta:ClearAllPoints(); row.segment:ClearAllPoints(); row.xp:ClearAllPoints()
   row.time:SetWidth(58)
   row.delta:SetWidth(48)
   if timesLeft then
@@ -74,15 +80,28 @@ local function LayoutRow(row, timesLeft)
     row.segment:SetPoint("LEFT", row.time, "RIGHT", 4, 0)
     row.icon:SetPoint("LEFT", hasSegment and row.segment or row.time, "RIGHT", 6, 0)
     row.label:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
-    row.label:SetPoint("RIGHT", row, "RIGHT", -p, 0)
+    if hasXP then row.xp:SetPoint("LEFT", row.label, "RIGHT", 6, 0); row.xp:SetPoint("RIGHT", row, "RIGHT", -p, 0)
+    else row.label:SetPoint("RIGHT", row, "RIGHT", -p, 0) end
   else
     row.icon:SetPoint("LEFT", row, "LEFT", p, 0)
     row.label:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
     row.time:SetPoint("RIGHT", row, "RIGHT", -p, 0)
     row.delta:SetPoint("RIGHT", row.time, "LEFT", -4, 0)
     row.segment:SetPoint("RIGHT", row.delta, "LEFT", -4, 0)
-    row.label:SetPoint("RIGHT", hasSegment and row.segment or (hasDelta and row.delta or row.time), "LEFT", -4, 0)
+    local rightStop = hasSegment and row.segment or (hasDelta and row.delta or row.time)
+    if hasXP then row.xp:SetPoint("LEFT", row.label, "RIGHT", 6, 0); row.xp:SetPoint("RIGHT", rightStop, "LEFT", -4, 0)
+    else row.label:SetPoint("RIGHT", rightStop, "LEFT", -4, 0) end
   end
+  -- With an xp/hr tag the label is exactly as wide as its text so the tag sits right beside it.
+  if hasXP then row.label:SetWidth(row.label:GetStringWidth() + 1) else row.label:SetWidth(0) end
+end
+
+-- "12.3k xp/hr" / "870 xp/hr"
+local function FormatXPPerHour(v)
+  if not v or v <= 0 then return "" end
+  if v >= 10000 then return string.format("%.0fk xp/hr", v / 1000) end
+  if v >= 1000 then return string.format("%.1fk xp/hr", v / 1000) end
+  return string.format("%.0f xp/hr", v)
 end
 
 -- Per-row icon: explicit item.Icon (e.g. the profession's own icon) beats the axis default.
@@ -113,6 +132,10 @@ local function FillDoneRow(row, item)
   else
     row.segment:SetText("")
   end
+  -- Level rows: XP/hr over that level, small and dim beside the label.
+  row.xp:SetText(item.Axis == "level" and FormatXPPerHour(item.XPPerHour) or "")
+  T.SetColour(row.xp, T.Colour.TextDim, 0.8)
+  row.xpLive = nil
   row.progress:Hide()
 end
 
@@ -122,6 +145,10 @@ local function FillUpcomingRow(row, item, width)
   if item.ProgressText then label = label .. "  |cff999999" .. item.ProgressText .. "|r" end
   row.label:SetText(label)
   T.SetColour(row.label, item.Current and T.Colour.Text or T.Colour.TextDim)
+  -- Current-level row: running XP/hr for this level; UpdateTimer refreshes it every second.
+  row.xpLive = (item.Current and item.Axis == "level") or nil
+  row.xp:SetText(row.xpLive and FormatXPPerHour(ST.View.CurrentXPPerHour()) or "")
+  T.SetColour(row.xp, T.Colour.TextDim, 0.8)
   row.time:SetText(U.FormatTime(item.Best))
   T.SetColour(row.time, T.Colour.TextDim)
   row.delta:SetText("")
@@ -462,8 +489,9 @@ function L.Refresh()
   end
 
   local done = V.Done
-  local maxDone = cfg.RowsDone or 4
-  for i = math.max(1, #done - maxDone + 1), #done do
+  -- Done rows: V.Done already trimmed to RowsDone (non-level recent splits) + RowsDoneLevels (past
+  -- level splits, 1-4). Both sorted oldest first; nothing more to cap here.
+  for i = 1, #done do
     local row = AcquireRow(n + 1)
     FillDoneRow(row, done[i])
     Place(row)
@@ -569,6 +597,13 @@ function L.UpdateTimer(V)
   if big and tick ~= tm.lastBigTick then
     tm.lastBigTick = tick
     tm.big:SetText(U.FormatTime(math.floor(primary + 0.5)))
+  end
+  -- Current-level row: its xp/hr tag ticks with the clock (once a second, same gate as the timer).
+  if tick ~= frame.lastXPTick then
+    frame.lastXPTick = tick
+    for _, row in ipairs(frame.rows) do
+      if row.xpLive and row:IsShown() then row.xp:SetText(FormatXPPerHour(ST.View.CurrentXPPerHour())) end
+    end
   end
   local colour
   if ST.Record.Current().CharacterRun_Frozen then colour = T.Colour.Frozen

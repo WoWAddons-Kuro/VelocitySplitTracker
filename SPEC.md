@@ -308,7 +308,7 @@ No border, dark translucent background (`Config.Bg_Alpha`), alternating row shad
 
 ### 6.2 "Upcoming" selection rules
 **Attention model** (decided 2026-11-16, replaces the earlier "near" rule):
-- Level: previous level (always, dim/no time if inferred) and `level:<cur+1>` with XP progress — always. No pinned Level 60 unless `Config.ShowFinalRow`.
+- Level: the last `Config.RowsDoneLevels` (**1**, slider 1-4) real level splits (always, exempt from the done window; the current level dim/no time if inferred), each with its segment delta and a small dim `xp/hr` tag beside the label (XPRequired, or the Classic curve, over the segment on the selected clock), and `level:<cur+1>` with XP progress and a live `xp/hr` tag (XP into the level over the clock since the ding; blank for the first 60 s; ticks with the timer) — always. No pinned Level 60 unless `Config.ShowFinalRow`.
 - Any **progress** on a quest objective or profession rank → that row is shown for `Attention_RecentSeconds` (**180 s**) from the last progress.
 - At/over `Attention_NearPct` (**0.90**) of the goal (quest complete-in-log counts as 100 %); for professions the goal is **either** the next 50-step **or** the trainer cap, so a capped profession stays up until trained → the row is **sticky** until completed.
 - A **completed** split (quest, profession step, kill) appears in the done list for `Attention_DoneSeconds` (**45 s**) and then disappears. The done list is *not* "the last N milestones".

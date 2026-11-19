@@ -21,18 +21,23 @@ end
 
 -- Recently hit milestones, oldest first. Inferred ones are skipped (no real time).
 -- Exception: the previous level is always present so "last level -> current level" reads.
-function V.Done(limit)
+-- Recently hit milestones, oldest first, in two groups:
+--   * the last `levelLimit` (Config.RowsDoneLevels, 1-4) LEVEL splits, exempt from the done window
+--     so "previous level(s) -> current level" always reads. If the most recent one is inferred it is
+--     still shown as a timeless placeholder.
+--   * every other real split completed within Attention_DoneSeconds, capped at `limit` (RowsDone).
+-- Inferred milestones never appear (except that single placeholder). Merged and sorted by time.
+function V.Done(limit, levelLimit)
+  levelLimit = math.max(1, math.min(4, tonumber(levelLimit) or 1))
   local rec = ST.Record.Current()
   local field = ClockField()
-  -- Done rows: the previous level (always, added below), plus every real split completed within
-  -- Attention_DoneSeconds. Inferred milestones (back-filled at login) never appear.
   local now = time()
   local doneWindow = ST.db.Config.Attention_DoneSeconds or D.Attention_DoneSeconds
-  local list = {}
+  local list = {}   -- non-level splits within the done window
   for key, m in pairs(rec.Milestones) do
     if not m.Inferred and m.At and (now - m.At) <= doneWindow then
       local axis = D.ParseKey(key)
-      if axis ~= "questaccept" and axis ~= "zone" then
+      if axis ~= "questaccept" and axis ~= "zone" and axis ~= "level" then
         list[#list + 1] = { Key = key, Axis = axis, Label = MilestoneLabel(key, m), Time = m[field], At = m.At }
       end
     end
@@ -44,30 +49,34 @@ function V.Done(limit)
     item.Best = ST.Compare.Best(item.Key)
     -- Gold = a true record: faster than every candidate (not just the reference run).
     item.Gold = ST.Compare.IsRecord(item.Key, item.Time)
-    -- Level rows also carry the (n-1 -> n) segment delta so "am I bleeding time right now?" reads on the row itself.
-    if item.Axis == "level" then item.SegmentDelta = V.SegmentDelta(tonumber((select(2, D.ParseKey(item.Key))))) end
     out[#out + 1] = item
   end
-  -- Guarantee the previous level row. It is exempt from the done-window: use the recorded
-  -- milestone (real time) whenever one exists; only fall back to a timeless placeholder when
-  -- the level was inferred / reached before the addon was installed.
+  -- Level rows: walk down from the current level collecting real dings until levelLimit is met.
+  -- Level rows carry the (n-1 -> n) segment delta and XP/hr so "am I bleeding time right now?"
+  -- reads on the row itself. The current level, if inferred, is a timeless placeholder.
   local level = ST.Record.Level()
-  local prevKey = D.Key("level", level)
-  local present = false
-  for _, it in ipairs(out) do if it.Key == prevKey then present = true break end end
-  if not present and level >= 1 then
-    local m = rec.Milestones[prevKey]
-    local row = { Key = prevKey, Axis = "level", Label = "Level " .. level, Best = ST.Compare.Best(prevKey) }
+  local levelRows = {}
+  for n = level, 2, -1 do
+    if #levelRows >= levelLimit then break end
+    local key = D.Key("level", n)
+    local m = rec.Milestones[key]
     if m and not m.Inferred then
-      row.Time = m[field]
-      row.Gold = ST.Compare.IsRecord(prevKey, row.Time)
-      row.SegmentDelta = V.SegmentDelta(level)
+      levelRows[#levelRows + 1] = { Key = key, Axis = "level", Label = "Level " .. n, Best = ST.Compare.Best(key),
+        Time = m[field], At = m.At, Gold = ST.Compare.IsRecord(key, m[field]),
+        SegmentDelta = V.SegmentDelta(n), XPPerHour = V.LevelXPPerHour(n) }
+    elseif n == level then
+      levelRows[#levelRows + 1] = { Key = key, Axis = "level", Label = "Level " .. n, Best = ST.Compare.Best(key), Inferred = true }
     else
-      row.Inferred = true
+      break   -- an inferred older level: nothing real further back
     end
-    table.insert(out, 1, row)
-    while #out > limit do table.remove(out, 2) end   -- keep the level row, drop the oldest other
   end
+  for _, r in ipairs(levelRows) do out[#out + 1] = r end
+  -- Oldest first. A timeless placeholder sorts to the top.
+  table.sort(out, function(a, b)
+    local ta, tb = a.Time or -1, b.Time or -1
+    if ta ~= tb then return ta < tb end
+    return (a.At or 0) < (b.At or 0)
+  end)
   return out
 end
 
@@ -274,6 +283,39 @@ end
 -- Kept for callers that only want the latest one.
 function V.PreviousSegmentDelta() return V.SegmentDelta(ST.Record.Level()) end
 
+-- XP/hour over the (n-1 -> n) level segment, on the selected clock, or nil when either end is
+-- inferred / missing or the XP for that level is unknown. XPRequired is the client's real
+-- UnitXPMax captured at the ding; the Classic curve is the fallback for older records.
+function V.LevelXPPerHour(n)
+  n = tonumber(n)
+  if not n or n < 2 then return nil end
+  local rec = ST.Record.Current()
+  local field = ClockField()
+  local b = rec.Milestones[D.Key("level", n)]
+  local a = (n <= 2) and { [field] = 0 } or rec.Milestones[D.Key("level", n - 1)]
+  if not b or b.Inferred or not a or a.Inferred or not b[field] or not a[field] then return nil end
+  local seconds = b[field] - a[field]
+  if seconds <= 0 then return nil end
+  local xp = b.XPRequired or D.XPToLevel_Classic[n]
+  if not xp then return nil end
+  return xp / seconds * 3600
+end
+
+-- XP/hour so far in the CURRENT level: XP into the level over the clock since the last ding.
+-- nil until at least 60 s into the level (the first minute is noise) or when the ding is inferred.
+function V.CurrentXPPerHour()
+  local rec = ST.Record.Current()
+  local level = ST.Record.Level()
+  local field = ClockField()
+  local since = (level <= 1) and { [field] = 0 } or rec.Milestones[D.Key("level", level)]
+  if not since or since.Inferred or not since[field] then return nil end
+  local played, active = ST.Clock.Now()
+  local now = (field == "Played") and played or active
+  local seconds = now - since[field]
+  if seconds < 60 then return nil end
+  return (UnitXP("player") or 0) / seconds * 3600
+end
+
 function V.Build()
   local cfg = ST.db.Config
   local rec = ST.Record.Current()
@@ -299,7 +341,7 @@ function V.Build()
     Title = title,
     CompareKey = { StartZone = key.StartZone, Class = ST.Compare.ClassLabel(key.Class), Pattern = key.Pattern },
     Level = ST.Record.Level(),
-    Done = V.Done(cfg.RowsDone or 4),
+    Done = V.Done(cfg.RowsDone or 4, cfg.RowsDoneLevels or 1),
     Upcoming = V.Upcoming(cfg.RowsUpcoming or 6),
     Final = V.Final(),
     ActiveSeconds = active,

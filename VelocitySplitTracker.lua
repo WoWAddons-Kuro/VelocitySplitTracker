@@ -21,6 +21,7 @@ local DEFAULT_CONFIG = {
   AutoHide_ShowNearUpcoming = true,
   AutoHide_ShowNearAxes = { level = true, quest = true, skill = true, gold = true, zone = true },
   RowsDone = 4,
+  RowsDoneLevels = 1,    -- past level splits always shown above the current level (1-4)
   RowsUpcoming = 6,
   Scale = 1,
   BgAlpha = 0.85,
