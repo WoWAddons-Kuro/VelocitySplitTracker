@@ -35,8 +35,14 @@ function C.Candidates()
   local out = {}
   for k, rec in pairs(ST.db.Characters) do
     local zoneOK = key.StartZone == "ANY" or rec.CharacterRun_StartZone == key.StartZone
-    -- reference runs with unknown mode are allowed through the mode filter (their mode is often not stated)
-    local modeOK = not sameModeOnly or (rec.CharacterRun_Mode or "unknown") == (meRec.CharacterRun_Mode or "unknown") or (rec.CharacterRun_Reference and (rec.CharacterRun_Mode or "unknown") == "unknown")
+    -- Mode filter. "unknown" (on EITHER side) is a wildcard: mode detection on Forever is not
+    -- reliable (the same account has characters stamped "pve" and "unknown" on the same day,
+    -- 2026-11-20), and an undetected mode must not make a run incomparable to everyone.
+    -- A hardcore run is still never matched against a known non-hardcore one.
+    local myMode, theirMode = meRec.CharacterRun_Mode or "unknown", rec.CharacterRun_Mode or "unknown"
+    local function Unknown(m) return m == "unknown" or m == "hardcore-unknown" end
+    local function Hardcore(m) return m:sub(1, 8) == "hardcore" end
+    local modeOK = not sameModeOnly or theirMode == myMode or ((Unknown(myMode) or Unknown(theirMode)) and Hardcore(myMode) == Hardcore(theirMode))
     if k ~= me and zoneOK and modeOK then
       local classOK = key.Class == "ANY" or rec.CharacterRun_ClassFile == key.Class
       local pat = ST.Data.PatternOf(rec)
