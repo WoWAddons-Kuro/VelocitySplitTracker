@@ -605,6 +605,9 @@ function M.Init()
       -- only fires after the login baseline has been taken (SeedBags)
       if lastBagSlots ~= nil then CheckBags(false) end
     elseif event == "PLAYER_ENTERING_WORLD" then
+      -- GetRealmName() can be "" at PLAYER_LOGIN on Forever; realm/mode were stamped from it
+      -- in Record.Current. Re-read now that the world is loaded (mode "unknown" -> "pve").
+      ST.Record.RefreshIdentity()
       C_Timer.After(3, function()
         local o = U.Phase("Milestones.enterworld+3s")
         U.InPhase("ScanQuestLog", M.ScanQuestLog)

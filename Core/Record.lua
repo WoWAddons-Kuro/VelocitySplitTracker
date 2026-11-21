@@ -70,6 +70,24 @@ function R.WhereNow()
   return where
 end
 
+-- Realm / mode are read from GetRealmName(), which on Forever is still "" at PLAYER_LOGIN
+-- (Record.Current runs there). DetectMode then finds no "pve"/"pvp" token and stamps "unknown",
+-- and the mode filter in Compare hides every other run. Re-run from PLAYER_ENTERING_WORLD.
+-- Realm is stored once it is non-empty; mode is re-detected while it is still unknown.
+function R.RefreshIdentity(rec)
+  rec = rec or R.Current()
+  local realm = GetRealmName()
+  if realm and realm ~= "" and (not rec.CharacterRun_Realm or rec.CharacterRun_Realm == "") then rec.CharacterRun_Realm = realm end
+  if not rec.CharacterRun_Mode or rec.CharacterRun_Mode:find("unknown", 1, true) then
+    local mode = R.DetectMode()
+    if mode ~= rec.CharacterRun_Mode then
+      rec.CharacterRun_Mode = mode
+      if ST.Compare then ST.Compare.Invalidate() end
+      if ST.Live and not mode:find("unknown", 1, true) then ST.Live.QueueRefresh() end
+    end
+  end
+end
+
 -- Returns (and creates on first sight) the record for the logged-in character.
 function R.Current()
   if R._current then return R._current end
@@ -106,7 +124,10 @@ function R.Current()
   end
   rec.CharacterRun_Level = UnitLevel("player")
   -- Mode: fill in for records that pre-date this field; re-detect when it was unknown.
-  if not rec.CharacterRun_Mode or rec.CharacterRun_Mode:find("unknown", 1, true) then rec.CharacterRun_Mode = R.DetectMode() end
+  -- NOTE: at PLAYER_LOGIN GetRealmName() can still be "" on Forever (observed 2026-11-21: four
+  -- characters stamped mode "unknown" with Realm ""), so R.RefreshIdentity() runs this again
+  -- from PLAYER_ENTERING_WORLD when the realm is known.
+  R.RefreshIdentity(rec)
   -- Client flavour / version: a Forever (realmless) run and an Era run are different categories,
   -- and a run that spans a client patch is a different run than one inside a single version.
   --   CharacterRun_ClientFlavour       flavour (never changes for a character)
