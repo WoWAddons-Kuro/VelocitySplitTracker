@@ -96,12 +96,17 @@ end
 
 -- Candidates ranked in Auto order (SPEC 5.1.1): eligible (extent > player level) first, by
 -- end time asc; ties by extent desc, then time at level+1 asc, then name.
+-- Eligible ALSO requires a REAL level:L+1 milestone. A run whose early levels are inferred
+-- (addon installed mid-run: extent 19 but real dings only at 17-19) has nothing to compare at
+-- the player's next ding; naming it as the reference would show "vs X" with a blank level row.
 function C.RankedCandidates()
   local level = ST.Record.Level()
   local list = {}
   for _, rec in ipairs(C.Candidates()) do
     local ext, endT = C.Extent(rec)
-    list[#list + 1] = { Rec = rec, Key = rec.CharacterRun_Key, Extent = ext, EndTime = endT, Eligible = ext > level, NextT = TimeAtLevel(rec, level + 1) }
+    local nextT = TimeAtLevel(rec, level + 1)
+    list[#list + 1] = { Rec = rec, Key = rec.CharacterRun_Key, Extent = ext, EndTime = endT,
+      Eligible = ext > level and nextT ~= nil, NextT = nextT }
   end
   table.sort(list, function(a, b)
     if a.Eligible ~= b.Eligible then return a.Eligible end
@@ -127,12 +132,23 @@ end
 
 -- Resolve the active target: { Mode, Run (rec or nil), RunKey }
 local lastAutoKey
+local lastPinWarn   -- "runKey|level" the no-level-data warning was last printed for
 function C.Target()
   local stored = StoredTarget()
   local mode = stored and stored.Mode or "Auto"
   if mode == "Run" then
     local run = stored.RunKey and ST.db.Characters[stored.RunKey]
-    if run then return { Mode = "Run", Run = run, RunKey = stored.RunKey } end
+    if run then
+      -- A pinned run bypasses Auto's eligibility rule, so say once (per run, per level) when
+      -- it has no real ding at the player's next level: the level rows will be blank.
+      local nextLevel = ST.Record.Level() + 1
+      local warnKey = stored.RunKey .. "|" .. nextLevel
+      if nextLevel <= ST.Data.MaxLevel and lastPinWarn ~= warnKey and TimeAtLevel(run, nextLevel) == nil then
+        lastPinWarn = warnKey
+        ST.Util.Print("pinned run %s has no recorded time for level %d - level rows will show no comparison", ST.Util.RunDisplayName(run), nextLevel)
+      end
+      return { Mode = "Run", Run = run, RunKey = stored.RunKey }
+    end
     C.SetTarget("Auto")
     ST.Util.Print("the pinned comparison run no longer exists; back to auto select")
     mode = "Auto"
