@@ -35,6 +35,16 @@ end
 
 function U.Round(v) return math.floor(v + 0.5) end
 
+-- Secret-value guard. Inside instances (e.g. Hall of Thanks) the client hands addons unit data
+-- (UnitGUID/UnitName of "target") as SECRET values: any string op on one raises
+-- "attempt to perform string conversion on a secret string value". Returns v when it is a plain
+-- usable value, nil when it is secret or nil. Clients without issecretvalue never have secrets.
+local issecretvalue = issecretvalue or function() return false end
+function U.Plain(v)
+  if v == nil or issecretvalue(v) then return nil end
+  return v
+end
+
 function U.CharacterKey()
   local name, realm = UnitName("player"), GetRealmName()
   return name .. "-" .. realm

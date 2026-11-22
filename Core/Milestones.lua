@@ -263,10 +263,12 @@ local nameByCreatureID = {}
 local creatureIDByName = {}      -- learned from the player's target as they fight
 
 -- Remember the creature ID behind a name whenever we look at one (PLAYER_TARGET_CHANGED).
+-- Inside instances (Hall of Thanks etc.) UnitGUID/UnitName("target") are SECRET values: strsplit
+-- on one raised "attempt to perform string conversion on a secret string value". Skip those.
 function M.NoteTarget()
   if not UnitExists("target") or UnitIsPlayer("target") then return end
-  local id = CreatureIDFromGUID(UnitGUID("target"))
-  local name = UnitName("target")
+  local id = CreatureIDFromGUID(U.Plain(UnitGUID("target")))
+  local name = U.Plain(UnitName("target"))
   if id and name then creatureIDByName[name] = id; nameByCreatureID[id] = name end
 end
 
@@ -282,8 +284,9 @@ local function OnXPGainLine(msg)
   if not name or name == "" then return end
   -- Prefer a stable creature ID (seen via target); fall back to a name-keyed milestone.
   local id = creatureIDByName[name]
-  if not id and UnitExists("target") and UnitName("target") == name then
-    id = CreatureIDFromGUID(UnitGUID("target"))
+  -- target data is SECRET inside instances; U.Plain turns it into nil so we just skip the ID
+  if not id and UnitExists("target") and U.Plain(UnitName("target")) == name then
+    id = CreatureIDFromGUID(U.Plain(UnitGUID("target")))
     if id then creatureIDByName[name] = id; nameByCreatureID[id] = name end
   end
   local key = id and D.Key("kill", id) or D.Key("kill", "name", (name:gsub("%s+", "_")))
