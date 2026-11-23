@@ -381,15 +381,17 @@ local function BuildFooter(f)
   footer.build:SetJustifyH("RIGHT")
   T.SetColour(footer.build, T.Colour.TextDim, 0.6)
   footer.build:SetText(U.BuildLabel())
-  -- centred status: hardcore runs say "Hardcore"; softcore runs show skull + death count
-  -- (always when Config.ShowDeathsSoftcore, otherwise only once > 0). Icon + count are centred as a pair.
+  -- left-justified status: hardcore runs say "Hardcore"; softcore runs show skull + death count
+  -- (always when Config.ShowDeathsSoftcore, otherwise only once > 0). Icon leads, text follows,
+  -- so the pair never overlaps the right-aligned build label at narrow widths.
   footer.status = T.Text(footer, T.FontSize)
-  footer.status:SetPoint("CENTER", 4, 0)
+  footer.status:SetJustifyH("LEFT")
   footer.status:Hide()
   footer.deathIcon = footer:CreateTexture(nil, "ARTWORK")
   footer.deathIcon:SetSize(12, 12)
   footer.deathIcon:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_8")   -- skull raid marker
-  footer.deathIcon:SetPoint("RIGHT", footer.status, "LEFT", -3, 0)
+  footer.deathIcon:SetPoint("LEFT", footer, "LEFT", T.Padding, 0)
+  footer.status:SetPoint("LEFT", footer.deathIcon, "RIGHT", 3, 0)
   footer.deathIcon:Hide()
   return footer
 end
@@ -527,7 +529,8 @@ function L.Refresh()
   frame.footer:ClearAllPoints()
   frame.footer:SetPoint("TOPLEFT", 0, y); frame.footer:SetPoint("TOPRIGHT", 0, y)
   y = y - T.FooterHeight
-  -- footer status: "Hardcore" on hardcore runs; otherwise the death counter
+  -- footer status, left-justified so it never collides with the right-aligned build label:
+  -- "Hardcore" on hardcore runs; otherwise skull + death counter
   -- (always when Config.ShowDeathsSoftcore, else only once > 0)
   local ft = frame.footer
   local mode = ST.Record.Current().CharacterRun_Mode or ""
@@ -535,15 +538,15 @@ function L.Refresh()
   if mode:find("hardcore", 1, true) then
     ft.status:SetText("Hardcore")
     T.SetColour(ft.status, T.Colour.Behind)
-    ft.status:SetPoint("CENTER", 0, 0)   -- text alone: true centre
+    ft.status:SetPoint("LEFT", ft, "LEFT", T.Padding, 0)   -- text alone, no icon
     ft.status:Show(); ft.deathIcon:Hide()
   else
     local deaths = ST.Milestones.DeathCount()
     if deaths > 0 or cfg.ShowDeathsSoftcore ~= false then
       ft.status:SetText(tostring(deaths))
       T.SetColour(ft.status, deaths > 0 and T.Colour.Behind or T.Colour.TextDim)
-      -- icon (12) + gap (3) hang off the left of the text; shift right by half so the pair is centred
-      ft.status:SetPoint("CENTER", (12 + 3) / 2, 0)
+      -- icon sits at the footer's left edge (anchored in BuildFooter); text follows it
+      ft.status:SetPoint("LEFT", ft.deathIcon, "RIGHT", 3, 0)
       ft.status:Show(); ft.deathIcon:Show()
     else
       ft.status:Hide(); ft.deathIcon:Hide()
