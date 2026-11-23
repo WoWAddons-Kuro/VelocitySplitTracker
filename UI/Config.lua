@@ -223,8 +223,9 @@ function C.Create()
 
   if Settings and Settings.RegisterCanvasLayoutCategory then
     local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-    category.ID = panel.name
     Settings.RegisterAddOnCategory(category)
+    -- Do NOT override category.ID with the name: newer clients pass the ID straight to
+    -- C_SettingsUtil.OpenSettingsPanel, which requires the numeric ID.
     categoryID = category:GetID()
   elseif InterfaceOptions_AddCategory then
     InterfaceOptions_AddCategory(panel)
