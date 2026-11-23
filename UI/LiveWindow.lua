@@ -537,7 +537,7 @@ function L.Refresh()
   ft.status:ClearAllPoints()
   if mode:find("hardcore", 1, true) then
     ft.status:SetText("Hardcore")
-    T.SetColour(ft.status, T.Colour.Behind)
+    T.SetColour(ft.status, T.Colour.TextDim)
     ft.status:SetPoint("LEFT", ft, "LEFT", T.Padding, 0)   -- text alone, no icon
     ft.status:Show(); ft.deathIcon:Hide()
   else
